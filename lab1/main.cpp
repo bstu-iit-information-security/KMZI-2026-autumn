@@ -1,9 +1,12 @@
 #include <cstdint>
 #include <cstring>
+#include <clocale>
 #include <iostream>
 #include <iomanip>
-#include <windows.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
 using namespace std;
 using Byte = uint8_t;
 
