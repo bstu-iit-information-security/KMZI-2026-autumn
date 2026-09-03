@@ -5,8 +5,10 @@
 #include <sstream>
 #include <algorithm>
 #include <cstdint>
-#include "SHA512.h"
 #include <stdexcept>
+#include <chrono>
+#include <random>
+#include "SHA512.h"
 
 using namespace std;
 
@@ -21,6 +23,7 @@ vector<uint8_t> hexToBytes(const string& hex)
     }
     return bytes;
 }
+
 class BigInt
 {
 public:
@@ -63,6 +66,24 @@ public:
         }
     }
 
+    bool isEven() const
+    {
+        return (digits[0] & 1) == 0;
+    }
+
+    size_t bitLength() const
+    {
+        if (digits.size() == 1 && digits[0] == 0) return 0;
+        size_t bits = (digits.size() - 1) * 32;
+        uint32_t top = digits.back();
+        while (top > 0)
+        {
+            bits++;
+            top >>= 1;
+        }
+        return bits;
+    }
+
     bool operator==(const BigInt& other) const
     {
         return digits == other.digits;
@@ -88,6 +109,7 @@ public:
         }
         return false;
     }
+
     bool operator>(const BigInt& other) const
     {
         if (digits.size() != other.digits.size())
@@ -107,6 +129,11 @@ public:
     bool operator>=(const BigInt& other) const
     {
         return !(*this < other);
+    }
+
+    bool operator<=(const BigInt& other) const
+    {
+        return !(*this > other);
     }
 
     BigInt operator+(const BigInt& other) const
@@ -250,6 +277,7 @@ public:
     {
         return divmod(other).first;
     }
+
     BigInt operator%(const BigInt& other) const
     {
         return divmod(other).second;
@@ -267,7 +295,6 @@ public:
         return ss.str();
     }
 };
-
 
 BigInt modPow(BigInt base, BigInt exp, BigInt mod)
 {
@@ -329,6 +356,99 @@ vector<uint8_t> sha512(const vector<uint8_t>& data)
     return hexToBytes(hexHash);
 }
 
+vector<uint8_t> generateRandomBytes(size_t numBytes)
+{
+    static uint64_t counter = 0;
+    vector<uint8_t> result;
+    result.reserve(numBytes);
+
+    while (result.size() < numBytes)
+    {
+        uint64_t now = chrono::high_resolution_clock::now().time_since_epoch().count();
+        counter++;
+
+        vector<uint8_t> seedData(24);
+        memcpy(seedData.data(), &now, 8);
+        memcpy(seedData.data() + 8, &counter, 8);
+
+        random_device rd;
+        uint64_t rVal = (static_cast<uint64_t>(rd()) << 32) | rd();
+        memcpy(seedData.data() + 16, &rVal, 8);
+
+        vector<uint8_t> hash = sha512(seedData);
+        size_t toCopy = min(numBytes - result.size(), hash.size());
+        result.insert(result.end(), hash.begin(), hash.begin() + toCopy);
+    }
+    return result;
+}
+
+BigInt generateRandomBigInt(size_t bitLen)
+{
+    size_t byteLen = (bitLen + 7) / 8;
+    vector<uint8_t> bytes = generateRandomBytes(byteLen);
+
+    bytes[0] |= (1 << ((bitLen - 1) % 8));
+    bytes[byteLen - 1] |= 1;
+
+    stringstream ss;
+    ss << hex << setfill('0');
+    for (uint8_t b : bytes)
+    {
+        ss << setw(2) << static_cast<int>(b);
+    }
+    return BigInt(ss.str());
+}
+
+bool isPrimeMillerRabin(const BigInt& n, int k = 10)
+{
+    if (n <= BigInt(1)) return false;
+    if (n == BigInt(2) || n == BigInt(3)) return true;
+    if (n.isEven()) return false;
+
+    BigInt d = n - BigInt(1);
+    size_t s = 0;
+    while (d.isEven())
+    {
+        d = d.shiftRight1();
+        s++;
+    }
+
+    for (int i = 0; i < k; ++i)
+    {
+        BigInt a = generateRandomBigInt(min(n.bitLength() - 1, static_cast<size_t>(64)));
+        if (a <= BigInt(1)) a = BigInt(2);
+        if (a >= n - BigInt(1)) a = n - BigInt(2);
+
+        BigInt x = modPow(a, d, n);
+        if (x == BigInt(1) || x == n - BigInt(1)) continue;
+
+        bool composite = true;
+        for (size_t r = 1; r < s; ++r)
+        {
+            x = modPow(x, BigInt(2), n);
+            if (x == n - BigInt(1))
+            {
+                composite = false;
+                break;
+            }
+        }
+        if (composite) return false;
+    }
+    return true;
+}
+
+BigInt generateLargePrime(size_t bitLen)
+{
+    while (true)
+    {
+        BigInt candidate = generateRandomBigInt(bitLen);
+        if (isPrimeMillerRabin(candidate))
+        {
+            return candidate;
+        }
+    }
+}
+
 vector<uint8_t> mgf1(const vector<uint8_t>& seed, size_t length)
 {
     vector<uint8_t> mask;
@@ -370,7 +490,7 @@ vector<uint8_t> oaepPad(const vector<uint8_t>& message, size_t k)
     db.push_back(0x01);
     db.insert(db.end(), message.begin(), message.end());
 
-    vector<uint8_t> seed(HASH_LEN, 0xA5);
+    vector<uint8_t> seed = generateRandomBytes(HASH_LEN);
 
     vector<uint8_t> dbMask = mgf1(seed, k - HASH_LEN - 1);
     vector<uint8_t> maskedDB(db.size());
@@ -427,14 +547,28 @@ struct RSAKey
     BigInt N, e, d, p, q, dp, dq, qinv;
 };
 
-RSAKey generateKeys()
+RSAKey generateKeys(size_t keyBitLen = 128)
 {
     RSAKey key;
-    key.p = BigInt(61);
-    key.q = BigInt(53);
+    size_t primeBits = keyBitLen / 2;
+
+    cout << "   [!] Генерация p (" << primeBits << " бит)..." << endl;
+    key.p = generateLargePrime(primeBits);
+
+    cout << "   [!] Генерация q (" << primeBits << " бит)..." << endl;
+    do {
+        key.q = generateLargePrime(primeBits);
+    } while (key.p == key.q);
+
     key.N = key.p * key.q;
     BigInt phi = (key.p - BigInt(1)) * (key.q - BigInt(1));
-    key.e = BigInt(17);
+    key.e = BigInt(65537);
+
+    while (phi % key.e == BigInt(0))
+    {
+        key.e = key.e + BigInt(2);
+    }
+
     key.d = modInverse(key.e, phi);
     key.dp = key.d % (key.p - BigInt(1));
     key.dq = key.d % (key.q - BigInt(1));
@@ -463,10 +597,14 @@ BigInt rsaDecryptCRT(BigInt c, const RSAKey& key)
 
 int main()
 {
-    RSAKey key = generateKeys();
-    cout << "[+] Ключи сгенерированы (BigInt)." << endl;
-    cout << "    Модуль N (HEX): 0x" << key.N.toHexString() << endl;
-    cout << "    Открытая экспонента e (HEX): 0x" << key.e.toHexString() << endl;
+    cout << "[+] Запуск автоматической генерации RSA ключей (512 бит)..." << endl;
+    RSAKey key = generateKeys(128);
+
+    cout << "[+] Ключи успешно сгенерированы." << endl;
+    cout << "    Простое p (HEX):  0x" << key.p.toHexString() << endl;
+    cout << "    Простое q (HEX):  0x" << key.q.toHexString() << endl;
+    cout << "    Модуль N (HEX):   0x" << key.N.toHexString() << endl;
+    cout << "    Экспонента e:     0x" << key.e.toHexString() << endl;
     cout << "    CRT компоненты:" << endl;
     cout << "      dp:   0x" << key.dp.toHexString() << endl;
     cout << "      dq:   0x" << key.dq.toHexString() << endl;
@@ -483,13 +621,13 @@ int main()
     {
         msgNum = msgNum * BigInt(256) + BigInt(message[i]);
     }
-    cout << "[2] Динамическое входное число для RSA: 0x" << msgNum.toHexString() << endl;
+    cout << "[2] Входное число для RSA: 0x" << msgNum.toHexString() << endl;
 
     BigInt cipherNum = rsaEncrypt(msgNum, key.e, key.N);
-    cout << "[3] Зашифрованное значение (Ciphertext HEX): 0x" << cipherNum.toHexString() << endl;
+    cout << "[3] Зашифрованное значение (HEX): 0x" << cipherNum.toHexString() << endl;
 
     BigInt decryptedNum = rsaDecryptCRT(cipherNum, key);
-    cout << "[4] Расшифрованное значение через CRT HEX:     0x" << decryptedNum.toHexString() << endl;
+    cout << "[4] Расшифрованное значение CRT (HEX): 0x" << decryptedNum.toHexString() << endl;
 
     vector<uint8_t> unpaddedMessage = oaepUnpad(padded, k);
     string restoredStr(unpaddedMessage.begin(), unpaddedMessage.end());
@@ -497,7 +635,7 @@ int main()
 
     if (restoredStr == inputStr && decryptedNum == msgNum)
     {
-        cout << "[УСПЕХ] Класс BigInt работает полностью корректно!" << endl;
+        cout << "[УСПЕХ] Генерация больших простых чисел и криптосистема работают корректно!" << endl;
     }
     else
     {
