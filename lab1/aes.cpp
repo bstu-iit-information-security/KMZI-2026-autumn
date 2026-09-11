@@ -16,7 +16,6 @@ void BitSlicedSubBytes::apply(Block& state) const {
     inverse[0] = 0xffffU;
     const std::array<std::uint16_t, 8> base = planes;
     
-    // BRANCHLESS возведение в степень для битовых срезов
     for (int bit = 7; bit >= 0; --bit) {
         inverse = multiply(inverse, inverse);
         const std::uint16_t exp_bit = (254U >> bit) & 1U;

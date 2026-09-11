@@ -35,7 +35,6 @@ std::uint8_t GaloisField::inverse(std::uint8_t value) const {
         std::uint8_t temp = multiply(result, base);
         result = (temp & mask) | (result & ~mask);
     }
-    // BRANCHLESS обработка нуля (гарантирует возврат 0 без if)
     std::uint8_t zero_mask = static_cast<std::uint8_t>(0U - (value == 0));
     return result & ~zero_mask;
 }
