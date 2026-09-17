@@ -241,13 +241,19 @@ public:
         uint8_t* ctxt,
         uint8_t* tag_out) const
     {
-        uint8_t CB[16] = { 0 };
-        for (size_t i = 0; i < 12 && i < iv_len; i++) CB[i] = iv[i];
-        CB[15] = 1;
+        uint8_t J0[16] = { 0 };
+        if (iv_len == 12) {
+            for (size_t i = 0; i < 12; i++) J0[i] = iv[i];
+            J0[15] = 1;
+        } else {
+            ghash(J0, iv, iv_len);
+            uint8_t iv_len_block[16] = { 0 };
+            putU64BE(iv_len_block + 8, static_cast<uint64_t>(iv_len) * 8);
+            ghash(J0, iv_len_block, 16);
+        }
 
-        uint8_t J0[16];
-        for (int i = 0; i < 16; i++) J0[i] = CB[i];
-
+        uint8_t CB[16];
+        for (int i = 0; i < 16; i++) CB[i] = J0[i];
         for (size_t offset = 0; offset < ptxt_len; offset += 16) {
             incrementCounter(CB);
             uint8_t e_k[16];
