@@ -1,311 +1,265 @@
 #include <iostream>
-#include <iomanip>
-#include <array>
-#include <cstdint>
+#include <vector>
 #include <cstring>
+#include <cstdint>
 
-class GaloisField28 {
-private:
-    uint16_t poly;
-    uint8_t  poly_byte;
+const size_t RSA_KEY_BITS = 2048;
+const size_t RSA_KEY_BYTES = RSA_KEY_BITS / 8;
+const size_t HASH_LEN = 32;
+const size_t MAX_MSG_LEN = RSA_KEY_BYTES - 2 * HASH_LEN - 2;
 
-public:
-    explicit GaloisField28(uint16_t p = 0x11B) : poly(p), poly_byte(static_cast<uint8_t>(p & 0xFF)) {}
+namespace SHA256_Standalone {
+    const uint32_t K[64] = {
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90bbefffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    };
 
-    inline uint8_t add(uint8_t a, uint8_t b) const {
-        return a ^ b;
-    }
+    inline uint32_t rotr(uint32_t x, uint32_t n) { return (x >> n) | (x << (32 - n)); }
 
-    uint8_t multiply(uint8_t a, uint8_t b) const {
-        uint8_t res = 0;
-        for (int i = 0; i < 8; ++i) {
-            uint8_t bit_mask = static_cast<uint8_t>(-static_cast<int8_t>((b >> i) & 1));
-            res ^= (a & bit_mask);
+    void transform(uint32_t* state, const uint8_t* data) {
+        uint32_t a = state[0], b = state[1], c = state[2], d = state[3];
+        uint32_t e = state[4], f = state[5], g = state[6], h = state[7];
+        uint32_t w[64];
 
-            uint8_t hi_bit = static_cast<uint8_t>(-static_cast<int8_t>((a >> 7) & 1));
-            a = static_cast<uint8_t>(a << 1) ^ (hi_bit & poly_byte);
+        for (int i = 0; i < 16; i++) {
+            w[i] = ((uint32_t)data[i * 4] << 24) | ((uint32_t)data[i * 4 + 1] << 16) |
+                ((uint32_t)data[i * 4 + 2] << 8) | ((uint32_t)data[i * 4 + 3]);
         }
-        return res;
-    }
-
-    inline uint8_t square(uint8_t a) const {
-        return multiply(a, a);
-    }
-
-    uint8_t inverse(uint8_t a) const {
-        uint8_t a2 = square(a);
-        uint8_t a4 = square(a2);
-        uint8_t a8 = square(a4);
-        uint8_t a16 = square(a8);
-        uint8_t a32 = square(a16);
-        uint8_t a64 = square(a32);
-        uint8_t a128 = square(a64);
-
-        uint8_t res = multiply(a128, a64);
-        res = multiply(res, a32);
-        res = multiply(res, a16);
-        res = multiply(res, a8);
-        res = multiply(res, a4);
-        res = multiply(res, a2);
-        return res;
-    }
-
-    static inline uint8_t affine_transform(uint8_t b) {
-        uint8_t s = b ^
-            static_cast<uint8_t>((b << 1) | (b >> 7)) ^
-            static_cast<uint8_t>((b << 2) | (b >> 6)) ^
-            static_cast<uint8_t>((b << 3) | (b >> 5)) ^
-            static_cast<uint8_t>((b << 4) | (b >> 4));
-        return s ^ 0x63;
-    }
-
-    uint8_t sbox_on_the_fly(uint8_t byte) const {
-        uint8_t inv = inverse(byte);
-        return affine_transform(inv);
-    }
-};
-
-class AES128 {
-private:
-    GaloisField28 gf;
-    std::array<std::array<uint8_t, 16>, 11> round_keys;
-
-    void key_expansion(const std::array<uint8_t, 16>& key) {
-        std::memcpy(round_keys[0].data(), key.data(), 16);
-
-        uint8_t rcon = 0x01;
-        for (size_t r = 1; r <= 10; ++r) {
-            std::array<uint8_t, 4> temp;
-            for (size_t i = 0; i < 4; ++i) {
-                temp[i] = round_keys[r - 1][12 + i];
-            }
-
-            uint8_t t0 = gf.sbox_on_the_fly(temp[1]) ^ rcon;
-            uint8_t t1 = gf.sbox_on_the_fly(temp[2]);
-            uint8_t t2 = gf.sbox_on_the_fly(temp[3]);
-            uint8_t t3 = gf.sbox_on_the_fly(temp[0]);
-
-            uint8_t hi_bit = static_cast<uint8_t>(-static_cast<int8_t>((rcon >> 7) & 1));
-            rcon = static_cast<uint8_t>(rcon << 1) ^ (hi_bit & 0x1B);
-
-            round_keys[r][0] = round_keys[r - 1][0] ^ t0;
-            round_keys[r][1] = round_keys[r - 1][1] ^ t1;
-            round_keys[r][2] = round_keys[r - 1][2] ^ t2;
-            round_keys[r][3] = round_keys[r - 1][3] ^ t3;
-
-            for (size_t col = 1; col < 4; ++col) {
-                for (size_t row = 0; row < 4; ++row) {
-                    round_keys[r][col * 4 + row] =
-                        round_keys[r - 1][col * 4 + row] ^ round_keys[r][(col - 1) * 4 + row];
-                }
-            }
-        }
-    }
-
-public:
-    explicit AES128(const std::array<uint8_t, 16>& key, uint16_t poly = 0x11B) : gf(poly) {
-        key_expansion(key);
-    }
-
-    std::array<uint8_t, 16> encrypt_block(const std::array<uint8_t, 16>& in) const {
-        std::array<uint8_t, 16> state = in;
-
-        for (size_t i = 0; i < 16; ++i) {
-            state[i] ^= round_keys[0][i];
+        for (int i = 16; i < 64; i++) {
+            uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
+            uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
         }
 
-        for (size_t round = 1; round <= 9; ++round) {
-            for (size_t i = 0; i < 16; ++i) {
-                state[i] = gf.sbox_on_the_fly(state[i]);
-            }
+        for (int i = 0; i < 64; i++) {
+            uint32_t S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+            uint32_t ch = (e & f) ^ (~e & g);
+            uint32_t temp1 = h + S1 + ch + K[i] + w[i];
+            uint32_t S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+            uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
+            uint32_t temp2 = S0 + maj;
 
-            std::array<uint8_t, 16> temp = state;
-            state[1] = temp[5];  state[5] = temp[9];  state[9] = temp[13]; state[13] = temp[1];
-            state[2] = temp[10]; state[6] = temp[14]; state[10] = temp[2];  state[14] = temp[6];
-            state[3] = temp[15]; state[7] = temp[3];  state[11] = temp[7];  state[15] = temp[11];
-
-            for (size_t c = 0; c < 4; ++c) {
-                size_t idx = c * 4;
-                uint8_t s0 = state[idx + 0];
-                uint8_t s1 = state[idx + 1];
-                uint8_t s2 = state[idx + 2];
-                uint8_t s3 = state[idx + 3];
-
-                state[idx + 0] = gf.multiply(0x02, s0) ^ gf.multiply(0x03, s1) ^ s2 ^ s3;
-                state[idx + 1] = s0 ^ gf.multiply(0x02, s1) ^ gf.multiply(0x03, s2) ^ s3;
-                state[idx + 2] = s0 ^ s1 ^ gf.multiply(0x02, s2) ^ gf.multiply(0x03, s3);
-                state[idx + 3] = gf.multiply(0x03, s0) ^ s1 ^ s2 ^ gf.multiply(0x02, s3);
-            }
-
-            for (size_t i = 0; i < 16; ++i) {
-                state[i] ^= round_keys[round][i];
-            }
+            h = g; g = f; f = e; e = d + temp1;
+            d = c; c = b; b = a; a = temp1 + temp2;
         }
 
-        for (size_t i = 0; i < 16; ++i) {
-            state[i] = gf.sbox_on_the_fly(state[i]);
-        }
-
-        std::array<uint8_t, 16> temp = state;
-        state[1] = temp[5];  state[5] = temp[9];  state[9] = temp[13]; state[13] = temp[1];
-        state[2] = temp[10]; state[6] = temp[14]; state[10] = temp[2];  state[14] = temp[6];
-        state[3] = temp[15]; state[7] = temp[3];  state[11] = temp[7];  state[15] = temp[11];
-
-        for (size_t i = 0; i < 16; ++i) {
-            state[i] ^= round_keys[10][i];
-        }
-
-        return state;
-    }
-};
-
-class AES_GCM {
-private:
-    AES128 cipher;
-    std::array<uint8_t, 16> H{};
-
-    static std::array<uint8_t, 16> gf128_mul(const std::array<uint8_t, 16>& X, const std::array<uint8_t, 16>& Y) {
-        std::array<uint8_t, 16> Z{};
-        std::array<uint8_t, 16> V = Y;
-
-        for (int i = 0; i < 128; ++i) {
-            uint8_t byte_val = X[i / 8];
-            uint8_t bit = (byte_val >> (7 - (i % 8))) & 1;
-            uint8_t bit_mask = static_cast<uint8_t>(-static_cast<int8_t>(bit));
-
-            for (size_t j = 0; j < 16; ++j) {
-                Z[j] ^= (V[j] & bit_mask);
-            }
-
-            uint8_t lsb_v = V[15] & 1;
-            uint8_t carry = 0;
-            for (size_t j = 0; j < 16; ++j) {
-                uint8_t next_carry = (V[j] & 1) << 7;
-                V[j] = (V[j] >> 1) | carry;
-                carry = next_carry;
-            }
-
-            uint8_t red_mask = static_cast<uint8_t>(-static_cast<int8_t>(lsb_v));
-            V[0] ^= (0xE1 & red_mask);
-        }
-        return Z;
+        state[0] += a; state[1] += b; state[2] += c; state[3] += d;
+        state[4] += e; state[5] += f; state[6] += g; state[7] += h;
     }
 
-    static void inc32(std::array<uint8_t, 16>& block) {
-        for (int i = 15; i >= 12; --i) {
-            if (++block[i] != 0) break;
+    void hash(const uint8_t* data, size_t len, uint8_t* digest) {
+        uint32_t state[8] = {
+            0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+            0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+        };
+
+        uint64_t bit_len = len * 8;
+        std::vector<uint8_t> buffer(data, data + len);
+        buffer.push_back(0x80);
+
+        while (buffer.size() % 64 != 56) {
+            buffer.push_back(0x00);
+        }
+
+        for (int i = 7; i >= 0; i--) {
+            buffer.push_back((uint8_t)(bit_len >> (i * 8)));
+        }
+
+        for (size_t i = 0; i < buffer.size(); i += 64) {
+            transform(state, &buffer[i]);
+        }
+
+        for (int i = 0; i < 8; i++) {
+            digest[i * 4] = (state[i] >> 24) & 0xFF;
+            digest[i * 4 + 1] = (state[i] >> 16) & 0xFF;
+            digest[i * 4 + 2] = (state[i] >> 8) & 0xFF;
+            digest[i * 4 + 3] = state[i] & 0xFF;
         }
     }
+}
 
-public:
-    explicit AES_GCM(const std::array<uint8_t, 16>& key) : cipher(key) {
-        std::array<uint8_t, 16> zero_block{};
-        H = cipher.encrypt_block(zero_block);
+void MGF1(const uint8_t* seed, size_t seedLen, uint8_t* mask, size_t maskLen) {
+    uint8_t counter[4];
+    uint8_t hashBuf[HASH_LEN];
+    size_t generated = 0;
+    uint32_t counter_val = 0;
+
+    std::vector<uint8_t> temp(seedLen + 4);
+    std::memcpy(temp.data(), seed, seedLen);
+
+    while (generated < maskLen) {
+        counter[0] = (counter_val >> 24) & 0xFF;
+        counter[1] = (counter_val >> 16) & 0xFF;
+        counter[2] = (counter_val >> 8) & 0xFF;
+        counter[3] = counter_val & 0xFF;
+
+        std::memcpy(temp.data() + seedLen, counter, 4);
+        SHA256_Standalone::hash(temp.data(), temp.size(), hashBuf);
+
+        size_t chunk = (maskLen - generated) < HASH_LEN ? (maskLen - generated) : HASH_LEN;
+        std::memcpy(mask + generated, hashBuf, chunk);
+
+        generated += chunk;
+        counter_val++;
+    }
+}
+
+uint8_t CT_IsNonZero(uint8_t val) {
+    uint16_t v = val;
+    return (uint8_t)((((v | (256 - v)) >> 8) & 1) * 0xFF);
+}
+
+uint8_t CT_Select(uint8_t a, uint8_t b, uint8_t mask) {
+    return (a & ~mask) | (b & mask);
+}
+
+bool OAEP_Encode(const uint8_t* msg, size_t msgLen, const uint8_t* seed,
+    uint8_t* em, size_t emLen) {
+    if (msgLen > MAX_MSG_LEN || emLen != RSA_KEY_BYTES) return false;
+
+    uint8_t lHash[HASH_LEN];
+    SHA256_Standalone::hash((const uint8_t*)"", 0, lHash);
+
+    size_t psLen = emLen - msgLen - 2 * HASH_LEN - 2;
+    uint8_t db[RSA_KEY_BYTES - HASH_LEN - 1];
+
+    std::memcpy(db, lHash, HASH_LEN);
+    std::memset(db + HASH_LEN, 0x00, psLen);
+    db[HASH_LEN + psLen] = 0x01;
+    std::memcpy(db + HASH_LEN + psLen + 1, msg, msgLen);
+
+    size_t dbMaskLen = emLen - HASH_LEN - 1;
+    std::vector<uint8_t> dbMask(dbMaskLen);
+    MGF1(seed, HASH_LEN, dbMask.data(), dbMaskLen);
+
+    for (size_t i = 0; i < dbMaskLen; ++i) {
+        db[i] ^= dbMask[i];
     }
 
-    void encrypt(
-        const std::array<uint8_t, 12>& iv,
-        const uint8_t* plaintext, size_t pt_len,
-        const uint8_t* aad, size_t aad_len,
-        uint8_t* ciphertext,
-        std::array<uint8_t, 16>& tag
-    ) {
-        std::array<uint8_t, 16> cb0{};
-        std::memcpy(cb0.data(), iv.data(), 12);
-        cb0[15] = 1;
+    uint8_t seedMask[HASH_LEN];
+    MGF1(db, dbMaskLen, seedMask, HASH_LEN);
 
-        std::array<uint8_t, 16> cb = cb0;
-        inc32(cb);
-
-        size_t offset = 0;
-        while (offset < pt_len) {
-            std::array<uint8_t, 16> pad = cipher.encrypt_block(cb);
-            size_t chunk = (pt_len - offset < 16) ? (pt_len - offset) : 16;
-            for (size_t i = 0; i < chunk; ++i) {
-                ciphertext[offset + i] = plaintext[offset + i] ^ pad[i];
-            }
-            offset += chunk;
-            inc32(cb);
-        }
-
-        std::array<uint8_t, 16> y{};
-
-        offset = 0;
-        while (offset < aad_len) {
-            std::array<uint8_t, 16> block{};
-            size_t chunk = (aad_len - offset < 16) ? (aad_len - offset) : 16;
-            std::memcpy(block.data(), aad + offset, chunk);
-            for (size_t i = 0; i < 16; ++i) y[i] ^= block[i];
-            y = gf128_mul(y, H);
-            offset += chunk;
-        }
-
-        offset = 0;
-        while (offset < pt_len) {
-            std::array<uint8_t, 16> block{};
-            size_t chunk = (pt_len - offset < 16) ? (pt_len - offset) : 16;
-            std::memcpy(block.data(), ciphertext + offset, chunk);
-            for (size_t i = 0; i < 16; ++i) y[i] ^= block[i];
-            y = gf128_mul(y, H);
-            offset += chunk;
-        }
-
-        std::array<uint8_t, 16> len_block{};
-        uint64_t aad_bits = static_cast<uint64_t>(aad_len) * 8;
-        uint64_t ct_bits = static_cast<uint64_t>(pt_len) * 8;
-        for (int i = 0; i < 8; ++i) {
-            len_block[7 - i] = static_cast<uint8_t>(aad_bits >> (i * 8));
-            len_block[15 - i] = static_cast<uint8_t>(ct_bits >> (i * 8));
-        }
-
-        for (size_t i = 0; i < 16; ++i) y[i] ^= len_block[i];
-        y = gf128_mul(y, H);
-
-        std::array<uint8_t, 16> e_cb0 = cipher.encrypt_block(cb0);
-        for (size_t i = 0; i < 16; ++i) {
-            tag[i] = y[i] ^ e_cb0[i];
-        }
+    uint8_t maskedSeed[HASH_LEN];
+    for (size_t i = 0; i < HASH_LEN; ++i) {
+        maskedSeed[i] = seed[i] ^ seedMask[i];
     }
 
-    static bool verify_tag(const std::array<uint8_t, 16>& tag1, const std::array<uint8_t, 16>& tag2) {
-        uint8_t delta = 0;
-        for (size_t i = 0; i < 16; ++i) {
-            delta |= (tag1[i] ^ tag2[i]);
-        }
-        return delta == 0;
-    }
-};
+    em[0] = 0x00;
+    std::memcpy(em + 1, maskedSeed, HASH_LEN);
+    std::memcpy(em + 1 + HASH_LEN, db, dbMaskLen);
 
-static void print_hex(const char* label, const uint8_t* data, size_t len) {
-    std::cout << label << ": ";
-    for (size_t i = 0; i < len; ++i) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
+    return true;
+}
+
+bool OAEP_Decode(const uint8_t* em, size_t emLen, uint8_t* msg, size_t& msgLen) {
+    if (emLen != RSA_KEY_BYTES) return false;
+
+    uint8_t lHash[HASH_LEN];
+    SHA256_Standalone::hash((const uint8_t*)"", 0, lHash);
+
+    uint8_t errorMask = 0x00;
+    errorMask |= CT_IsNonZero(em[0]);
+
+    const uint8_t* maskedSeed = em + 1;
+    const uint8_t* maskedDB = em + 1 + HASH_LEN;
+    size_t dbLen = emLen - HASH_LEN - 1;
+
+    uint8_t seedMask[HASH_LEN];
+    MGF1(maskedDB, dbLen, seedMask, HASH_LEN);
+    uint8_t seed[HASH_LEN];
+    for (size_t i = 0; i < HASH_LEN; ++i) {
+        seed[i] = maskedSeed[i] ^ seedMask[i];
     }
-    std::cout << std::dec << "\n";
+
+    uint8_t dbMask[RSA_KEY_BYTES - HASH_LEN - 1];
+    MGF1(seed, HASH_LEN, dbMask, dbLen);
+
+    std::vector<uint8_t> db(dbLen);
+    for (size_t i = 0; i < dbLen; ++i) {
+        db[i] = maskedDB[i] ^ dbMask[i];
+    }
+
+    for (size_t i = 0; i < HASH_LEN; ++i) {
+        errorMask |= (db[i] ^ lHash[i]);
+    }
+    errorMask = CT_IsNonZero(errorMask);
+
+    size_t delimIndex = 0;
+    uint8_t found01 = 0x00;
+
+    for (size_t i = HASH_LEN; i < dbLen; ++i) {
+        uint8_t is01 = (db[i] == 0x01) ? 0xFF : 0x00;
+        uint8_t takeThis = is01 & ~found01;
+        delimIndex = (size_t)CT_Select((uint8_t)delimIndex, (uint8_t)i, takeThis);
+        found01 |= takeThis;
+    }
+
+    errorMask |= ~found01;
+
+    msgLen = dbLen - (delimIndex + 1);
+    for (size_t i = 0; i < MAX_MSG_LEN; ++i) {
+        size_t srcIdx = delimIndex + 1 + i;
+        uint8_t b = (srcIdx < dbLen) ? db[srcIdx] : 0;
+        msg[i] = CT_Select(b, 0, errorMask);
+    }
+
+    return (errorMask == 0x00);
 }
 
 int main() {
     setlocale(LC_ALL, "Russian");
-    std::cout << "[+] (AES-128-GCM)\n";
-    std::cout << "[+] Режим Constant-Time: генерация S-box через a^254 на лету\n\n";
 
-    std::array<uint8_t, 16> key{};
-    std::array<uint8_t, 12> iv{};
-    std::array<uint8_t, 16> tag{};
+    std::cout << "=== RSA-OAEP модуль с защитой по времени выполнения (Вариант 1) ===" << std::endl;
 
-    AES_GCM gcm(key);
-    gcm.encrypt(iv, nullptr, 0, nullptr, 0, nullptr, tag);
+    const char* originalText = "Привет, системы информационной безопасности!";
+    size_t origLen = std::strlen(originalText);
 
-    print_hex("Вычисленный Tag", tag.data(), 16);
-    std::cout << "Ожидаемый Tag  : 58e2fccefa7e3061367f1d57a4e7455a\n";
+    std::cout << "Исходное сообщение: " << originalText << " (Длина: " << origLen << ")" << std::endl;
 
-    std::array<uint8_t, 16> expected_tag = {
-        0x58, 0xe2, 0xfc, 0xce, 0xfa, 0x7e, 0x30, 0x61,
-        0x36, 0x7f, 0x1d, 0x57, 0xa4, 0xe7, 0x45, 0x5a
+    uint8_t em[RSA_KEY_BYTES];
+    uint8_t seed[HASH_LEN] = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+        0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20
     };
 
-    bool valid = AES_GCM::verify_tag(tag, expected_tag);
-    std::cout << "Верификация тега (Constant-Time): " << (valid ? "OK (SUCCESS)" : "FAIL") << "\n";
+    if (!OAEP_Encode((const uint8_t*)originalText, origLen, seed, em, RSA_KEY_BYTES)) {
+        std::cerr << "Ошибка упаковки OAEP!" << std::endl;
+        return 1;
+    }
+    std::cout << "Упаковка OAEP выполнена успешно. Размер EM: " << RSA_KEY_BYTES << " байт." << std::endl;
+
+    uint8_t decodedMsg[MAX_MSG_LEN];
+    size_t decodedLen = 0;
+
+    bool success = OAEP_Decode(em, RSA_KEY_BYTES, decodedMsg, decodedLen);
+
+    if (success) {
+        std::cout << "Распаковка OAEP выполнена успешно!" << std::endl;
+        std::cout << "Декодированное сообщение: ";
+        for (size_t i = 0; i < decodedLen; ++i) {
+            std::cout << (char)decodedMsg[i];
+        }
+        std::cout << std::endl;
+    }
+    else {
+        std::cout << "Ошибка распаковки OAEP при проверке целостности." << std::endl;
+    }
+
+    std::cout << "\n--- Тестирование поврежденного шифротекста (защита Блейхенбахера) ---" << std::endl;
+    em[5] ^= 0xFF;
+
+    bool successCorrupted = OAEP_Decode(em, RSA_KEY_BYTES, decodedMsg, decodedLen);
+    if (!successCorrupted) {
+        std::cout << "Поврежденный шифротекст корректно отклонен в режиме Constant-Time (без раннего выхода)." << std::endl;
+    }
 
     return 0;
 }
