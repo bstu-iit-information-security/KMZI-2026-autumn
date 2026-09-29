@@ -1,643 +1,353 @@
 #include <iostream>
 #include <vector>
-#include <cstdint>
-#include <cstring>
-#include <algorithm>
-#include <stdexcept>
 #include <string>
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <stdexcept>
+#include <random>
 
-using namespace std;
+namespace RSA9 {
 
-// big integer class for rsa-4096 operations
-class BigInt {
-public:
-    vector<uint32_t> v;
-
-    BigInt() {}
-    BigInt(uint64_t val) {
-        if (val > 0) {
-            v.push_back(static_cast<uint32_t>(val & 0xFFFFFFFF));
-            if (val >> 32) v.push_back(static_cast<uint32_t>(val >> 32));
+    class BigNum {
+    public:
+        std::vector<uint32_t> words;
+        BigNum() { words.push_back(0); }
+        BigNum(uint64_t v) {
+            if (v == 0) words.push_back(0);
+            else { words.push_back((uint32_t)(v & 0xFFFFFFFF)); if (v >> 32) words.push_back((uint32_t)(v >> 32)); }
+            norm();
         }
-    }
-
-    void trim() {
-        while (!v.empty() && v.back() == 0) v.pop_back();
-    }
-
-    bool is_zero() const {
-        for (auto x : v) if (x != 0) return false;
-        return true;
-    }
-
-    bool is_even() const {
-        if (v.empty()) return true;
-        return (v[0] & 1) == 0;
-    }
-
-    bool tstbit(size_t bit) const {
-        size_t idx = bit / 32;
-        size_t pos = bit % 32;
-        if (idx >= v.size()) return false;
-        return (v[idx] >> pos) & 1;
-    }
-
-    void setbit(size_t bit) {
-        size_t idx = bit / 32;
-        size_t pos = bit % 32;
-        if (idx >= v.size()) v.resize(idx + 1, 0);
-        v[idx] |= (1U << pos);
-    }
-
-    size_t bit_len() const {
-        if (v.empty()) return 0;
-        size_t idx = v.size() - 1;
-        while (idx > 0 && v[idx] == 0) idx--;
-        if (v[idx] == 0) return 0;
-        uint32_t top = v[idx];
-        size_t bits = idx * 32;
-        while (top > 0) { bits++; top >>= 1; }
-        return bits;
-    }
-
-    static int cmp(const BigInt& a, const BigInt& b) {
-        size_t la = a.v.size(), lb = b.v.size();
-        while (la > 0 && a.v[la - 1] == 0) la--;
-        while (lb > 0 && b.v[lb - 1] == 0) lb--;
-        if (la != lb) return la < lb ? -1 : 1;
-        for (size_t i = la; i > 0; --i) {
-            if (a.v[i - 1] != b.v[i - 1])
-                return a.v[i - 1] < b.v[i - 1] ? -1 : 1;
+        BigNum(const std::string& s) {
+            std::string h = s;
+            if (h.rfind("0x", 0) == 0 || h.rfind("0X", 0) == 0) h = h.substr(2);
+            while (h.length() % 8) h = "0" + h;
+            for (int i = (int)h.length() - 8; i >= 0; i -= 8)
+                words.push_back((uint32_t)std::stoul(h.substr(i, 8), nullptr, 16));
+            norm();
         }
-        return 0;
-    }
-
-    static BigInt add(const BigInt& a, const BigInt& b) {
-        BigInt res;
-        uint64_t carry = 0;
-        size_t n = max(a.v.size(), b.v.size());
-        for (size_t i = 0; i < n || carry; ++i) {
-            uint64_t sum = carry;
-            if (i < a.v.size()) sum += a.v[i];
-            if (i < b.v.size()) sum += b.v[i];
-            res.v.push_back(static_cast<uint32_t>(sum & 0xFFFFFFFF));
-            carry = sum >> 32;
+        void norm() { while (words.size() > 1 && words.back() == 0) words.pop_back(); }
+        int cmp(const BigNum& o) const {
+            if (words.size() != o.words.size()) return words.size() < o.words.size() ? -1 : 1;
+            for (int i = (int)words.size() - 1; i >= 0; --i) if (words[i] != o.words[i]) return words[i] < o.words[i] ? -1 : 1;
+            return 0;
         }
-        res.trim();
-        return res;
-    }
+        bool operator< (const BigNum& o) const { return cmp(o) < 0; }
+        bool operator> (const BigNum& o) const { return cmp(o) > 0; }
+        bool operator<=(const BigNum& o) const { return cmp(o) <= 0; }
+        bool operator>=(const BigNum& o) const { return cmp(o) >= 0; }
+        bool operator==(const BigNum& o) const { return cmp(o) == 0; }
+        bool operator!=(const BigNum& o) const { return cmp(o) != 0; }
 
-    static BigInt sub(const BigInt& a, const BigInt& b) {
-        BigInt res;
-        int64_t borrow = 0;
-        for (size_t i = 0; i < a.v.size(); ++i) {
-            int64_t diff = static_cast<int64_t>(a.v[i]) - borrow - (i < b.v.size() ? b.v[i] : 0);
-            if (diff < 0) {
-                diff += 0x100000000LL;
-                borrow = 1;
-            } else {
-                borrow = 0;
+        void shr1() {
+            uint32_t c = 0;
+            for (int i = (int)words.size() - 1; i >= 0; --i) { uint64_t t = ((uint64_t)c << 32) | words[i]; words[i] = (uint32_t)(t >> 1); c = (uint32_t)(t & 1); }
+            norm();
+        }
+        void subInPlace(const BigNum& o) {
+            int64_t b = 0;
+            for (size_t i = 0; i < words.size(); ++i) {
+                int64_t d = (int64_t)words[i] - b - (i < o.words.size() ? o.words[i] : 0);
+                if (d < 0) { d += 0x100000000LL; b = 1; }
+                else b = 0;
+                words[i] = (uint32_t)(d & 0xFFFFFFFF);
             }
-            res.v.push_back(static_cast<uint32_t>(diff));
+            norm();
         }
-        res.trim();
-        return res;
-    }
+        bool bit(size_t i) const { size_t w = i / 32, b = i % 32; if (w >= words.size()) return false; return (words[w] >> b) & 1; }
 
-    static BigInt mul(const BigInt& a, const BigInt& b) {
-        BigInt res;
-        res.v.resize(a.v.size() + b.v.size(), 0);
-        for (size_t i = 0; i < a.v.size(); ++i) {
-            uint64_t carry = 0;
-            for (size_t j = 0; j < b.v.size() || carry; ++j) {
-                uint64_t cur = res.v[i + j] + carry + (uint64_t)a.v[i] * (j < b.v.size() ? b.v[j] : 0);
-                res.v[i + j] = static_cast<uint32_t>(cur & 0xFFFFFFFF);
-                carry = cur >> 32;
-            }
+        BigNum operator+(const BigNum& o) const {
+            BigNum r; r.words.clear(); uint64_t c = 0;
+            size_t n = std::max(words.size(), o.words.size());
+            for (size_t i = 0; i < n || c; ++i) { uint64_t s = c + (i < words.size() ? words[i] : 0) + (i < o.words.size() ? o.words[i] : 0); r.words.push_back((uint32_t)(s & 0xFFFFFFFF)); c = s >> 32; }
+            r.norm(); return r;
         }
-        res.trim();
-        return res;
-    }
-
-    static BigInt shift_right_1(const BigInt& a) {
-        BigInt res;
-        if (a.v.empty()) return res;
-        res.v.resize(a.v.size(), 0);
-        uint32_t carry = 0;
-        for (size_t i = a.v.size(); i > 0; --i) {
-            uint32_t cur = a.v[i - 1];
-            res.v[i - 1] = (cur >> 1) | (carry << 31);
-            carry = cur & 1;
-        }
-        res.trim();
-        return res;
-    }
-
-    static BigInt shift_left_1(const BigInt& a) {
-        BigInt res;
-        if (a.v.empty()) return res;
-        res.v.resize(a.v.size(), 0);
-        uint32_t carry = 0;
-        for (size_t i = 0; i < a.v.size(); ++i) {
-            uint64_t cur = ((uint64_t)a.v[i] << 1) | carry;
-            res.v[i] = static_cast<uint32_t>(cur & 0xFFFFFFFF);
-            carry = static_cast<uint32_t>(cur >> 32);
-        }
-        if (carry) res.v.push_back(carry);
-        res.trim();
-        return res;
-    }
-
-    static BigInt mod(const BigInt& a, const BigInt& m) {
-        if (m.is_zero()) throw invalid_argument("division by zero");
-        BigInt rem;
-        size_t bits = a.bit_len();
-        for (size_t i = bits; i > 0; --i) {
-            rem = shift_left_1(rem);
-            if (a.tstbit(i - 1)) rem.setbit(0);
-            if (cmp(rem, m) >= 0) {
-                rem = sub(rem, m);
-            }
-        }
-        return rem;
-    }
-
-    static BigInt mod_pow(BigInt base, BigInt exp, const BigInt& m) {
-        BigInt res(1);
-        base = mod(base, m);
-        size_t bits = exp.bit_len();
-        for (size_t i = 0; i < bits; ++i) {
-            if (exp.tstbit(i)) {
-                res = mod(mul(res, base), m);
-            }
-            base = mod(mul(base, base), m);
-        }
-        return res;
-    }
-
-    static BigInt from_bytes(const vector<uint8_t>& bytes) {
-        BigInt res;
-        for (uint8_t b : bytes) {
-            for (int k = 0; k < 8; ++k) {
-                res = shift_left_1(res);
-            }
-            res = add(res, BigInt(b));
-        }
-        return res;
-    }
-
-    vector<uint8_t> to_bytes(size_t fixed_len) const {
-        vector<uint8_t> res(fixed_len, 0);
-        BigInt temp = *this;
-        for (size_t i = 0; i < fixed_len; ++i) {
-            if (!temp.v.empty()) {
-                res[fixed_len - 1 - i] = static_cast<uint8_t>(temp.v[0] & 0xFF);
-            }
-            for (int k = 0; k < 8; ++k) {
-                temp = shift_right_1(temp);
-            }
-        }
-        return res;
-    }
-
-    static BigInt from_hex(const string& hex_str) {
-        vector<uint8_t> bytes;
-        size_t len = hex_str.length();
-        size_t start = (len % 2 != 0) ? 1 : 0;
-        if (start) {
-            char c = hex_str[0];
-            uint8_t val = (c >= '0' && c <= '9') ? c - '0' :
-                          (c >= 'a' && c <= 'f') ? c - 'a' + 10 :
-                          (c >= 'A' && c <= 'F') ? c - 'A' + 10 : 0;
-            bytes.push_back(val);
-        }
-        for (size_t i = start; i < len; i += 2) {
-            string byteString = hex_str.substr(i, 2);
-            uint8_t byte = static_cast<uint8_t>(strtol(byteString.c_str(), nullptr, 16));
-            bytes.push_back(byte);
-        }
-        return from_bytes(bytes);
-    }
-};
-
-// sha-384 implementation
-namespace Cryptography {
-
-class SHA384 {
-private:
-    static inline uint64_t rotr(uint64_t x, size_t n) {
-        return (x >> n) | (x << (64 - n));
-    }
-    static inline uint64_t Ch(uint64_t x, uint64_t y, uint64_t z) {
-        return (x & y) ^ (~x & z);
-    }
-    static inline uint64_t Maj(uint64_t x, uint64_t y, uint64_t z) {
-        return (x & y) ^ (x & z) ^ (y & z);
-    }
-    static inline uint64_t Sigma0(uint64_t x) {
-        return rotr(x, 28) ^ rotr(x, 34) ^ rotr(x, 39);
-    }
-    static inline uint64_t Sigma1(uint64_t x) {
-        return rotr(x, 14) ^ rotr(x, 18) ^ rotr(x, 41);
-    }
-    static inline uint64_t sigma0(uint64_t x) {
-        return rotr(x, 1) ^ rotr(x, 8) ^ (x >> 7);
-    }
-    static inline uint64_t sigma1(uint64_t x) {
-        return rotr(x, 19) ^ rotr(x, 61) ^ (x >> 6);
-    }
-
-    static const uint64_t K[80];
-
-public:
-    static void hash(const uint8_t* data, size_t len, uint8_t out[48]) {
-        uint64_t H[8] = {
-            0xcbbb9d5dc1059ed8ULL, 0x629a292a367cd507ULL,
-            0x9159015a3070dd17ULL, 0x152fecd8f70e5939ULL,
-            0x67332667ffc00b31ULL, 0x8eb44a876d468b80ULL,
-            0xdb0c2e0d64f98fa7ULL, 0x47b5481dbefa4fa4ULL
-        };
-
-        size_t padded_len = len + 1 + 16;
-        if (padded_len % 128 != 0) {
-            padded_len += 128 - (padded_len % 128);
-        }
-
-        vector<uint8_t> padded(padded_len, 0);
-        if (len > 0 && data != nullptr) {
-            memcpy(padded.data(), data, len);
-        }
-        padded[len] = 0x80;
-
-        uint64_t bit_len = static_cast<uint64_t>(len) * 8;
-        for (int i = 0; i < 8; ++i) {
-            padded[padded_len - 8 + i] = static_cast<uint8_t>((bit_len >> (56 - i * 8)) & 0xFF);
-        }
-
-        for (size_t offset = 0; offset < padded_len; offset += 128) {
-            uint64_t W[80];
-            for (size_t t = 0; t < 16; ++t) {
-                W[t] = 0;
-                for (size_t b = 0; b < 8; ++b) {
-                    W[t] = (W[t] << 8) | padded[offset + t * 8 + b];
+        BigNum operator-(const BigNum& o) const { if (*this < o) return BigNum(0); BigNum r = *this; r.subInPlace(o); return r; }
+        BigNum operator*(const BigNum& o) const {
+            BigNum r; r.words.assign(words.size() + o.words.size(), 0);
+            for (size_t i = 0; i < words.size(); ++i) {
+                uint64_t c = 0;
+                for (size_t j = 0; j < o.words.size() || c; ++j) {
+                    uint64_t t = r.words[i + j] + c + (uint64_t)words[i] * (j < o.words.size() ? o.words[j] : 0);
+                    r.words[i + j] = (uint32_t)(t & 0xFFFFFFFF); c = t >> 32;
                 }
             }
-            for (size_t t = 16; t < 80; ++t) {
-                W[t] = sigma1(W[t - 2]) + W[t - 7] + sigma0(W[t - 15]) + W[t - 16];
-            }
-
-            uint64_t a = H[0], b = H[1], c = H[2], d = H[3];
-            uint64_t e = H[4], f = H[5], g = H[6], h = H[7];
-
-            for (size_t t = 0; t < 80; ++t) {
-                uint64_t T1 = h + Sigma1(e) + Ch(e, f, g) + K[t] + W[t];
-                uint64_t T2 = Sigma0(a) + Maj(a, b, c);
-                h = g;
-                g = f;
-                f = e;
-                e = d + T1;
-                d = c;
-                c = b;
-                b = a;
-                a = T1 + T2;
-            }
-
-            H[0] += a; H[1] += b; H[2] += c; H[3] += d;
-            H[4] += e; H[5] += f; H[6] += g; H[7] += h;
+            r.norm(); return r;
         }
-
-        for (size_t i = 0; i < 6; ++i) {
-            for (size_t b = 0; b < 8; ++b) {
-                out[i * 8 + b] = static_cast<uint8_t>((H[i] >> (56 - b * 8)) & 0xFF);
-            }
+        BigNum operator<<(size_t s) const {
+            if (s == 0 || (words.size() == 1 && words[0] == 0)) return *this;
+            BigNum r; size_t ws = s / 32, bs = s % 32; r.words.assign(ws, 0); uint64_t c = 0;
+            for (uint32_t w : words) { uint64_t t = ((uint64_t)w << bs) | c; r.words.push_back((uint32_t)(t & 0xFFFFFFFF)); c = t >> 32; }
+            if (c) r.words.push_back((uint32_t)c); r.norm(); return r;
         }
-    }
-};
-
-const uint64_t SHA384::K[80] = {
-    0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL, 0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
-    0x3956c25bf348b538ULL, 0x59f111f1b605d019ULL, 0x923f82a4af194f9bULL, 0xab1c5ed5da6d8118ULL,
-    0xd807aa98a3030242ULL, 0x12835b0145706fbeULL, 0x243185be4ee4b28cULL, 0x550c7dc3d5ffb4e2ULL,
-    0x72be5d74f27b896fULL, 0x80deb1fe3b1696b1ULL, 0x9bdc06a725c71235ULL, 0xc19bf174cf692694ULL,
-    0xe49b69c19ef14ad2ULL, 0xefbe4786384f25e3ULL, 0x0fc19dc68b8cd5b5ULL, 0x240ca1cc77ac9c65ULL,
-    0x2de92c6f592b0275ULL, 0x4a7484aa6ea6e483ULL, 0x5cb0a9dcbd41fbd4ULL, 0x76f988da831153b5ULL,
-    0x983e5152ee66dfabULL, 0xa831c66d2db43210ULL, 0xb00327c898fb213fULL, 0xbf597fc7bef0bf89ULL,
-    0x48a1e2225140102cULL, 0x059b64011d82f2abULL, 0x1caaab05880a3e6eULL, 0x5471c6210428db85ULL,
-    0x804245107230485aULL, 0x3e778736a0ed1671ULL, 0x6e2f129a08302f23ULL, 0x12248425ed3728f3ULL,
-    0x82f42a1f81d1136bULL, 0x540c42f02931215dULL, 0x23a5e847c2111812ULL, 0x3d0b2f5d9f04130fULL,
-    0xd0ec3264103135cbULL, 0x33e9b119131c4f6dULL, 0x3b1236166a010d2cULL, 0x8f22bc08226d7f02ULL,
-    0x2641a0224d084ef7ULL, 0x0113f019f3f4c6eeULL, 0xd0291931ec87d3a0ULL, 0x217d83383a8862e3ULL,
-    0xc44561081a29367dULL, 0x0d2948bc50a6311dULL, 0x1e3a681d33f20815ULL, 0x271f2803b0c515a8ULL,
-    0x5a510f2c4180d297ULL, 0x619f727c4273c52eULL, 0xa4369f6e625a525fULL, 0x1a84f331d279e89bULL,
-    0x854483ae5d8f6d6cULL, 0x116035860d5b128cULL, 0xa51ef3a1727937a0ULL, 0xa2f1025a1ff7f83eULL,
-    0x4e6592288338e3a2ULL, 0x2a3e0f792e39dd8dULL, 0x048515c13e573a4aULL, 0xe28f41334c9c748eULL,
-    0x4e082f61e272bb83ULL, 0x82d9213123c5ed8aULL, 0x8f466d735071141eULL, 0x93be2a95e263c7b2ULL,
-    0x19273523f03bfe38ULL, 0x367f33eb0c7b32cbULL, 0xd17c0f1620c0245aULL, 0xa285f52317134448ULL,
-    0x81d283c74b486a67ULL, 0x2077978d38cb090bULL, 0xbf9c39d885a02102ULL, 0x0d0370f2095cc606ULL,
-    0x2036eb59ee02cb42ULL, 0x0d3f27f8087968aaULL, 0x4a123f1124622100ULL, 0x4778e178122a28e3ULL
-};
-
-} // namespace Cryptography
-
-// constant-time binary gcd modular inverse algorithm
-namespace NumberTheory {
-
-BigInt ct_mod_inverse_binary_gcd(const BigInt& q, const BigInt& p) {
-    size_t nbits = p.bit_len();
-    size_t max_iterations = 2 * nbits;
-
-    BigInt u = q;
-    BigInt v = p;
-    BigInt x1(1);
-    BigInt x2(0);
-
-    for (size_t i = 0; i < max_iterations; ++i) {
-        bool u_is_even = u.is_even();
-
-        BigInt u_shifted = BigInt::shift_right_1(u);
-        BigInt x1_updated;
-        if (!x1.is_even()) {
-            x1_updated = BigInt::shift_right_1(BigInt::add(x1, p));
-        } else {
-            x1_updated = BigInt::shift_right_1(x1);
+        BigNum operator>>(size_t s) const {
+            size_t ws = s / 32, bs = s % 32;
+            if (ws >= words.size()) return BigNum(0);
+            BigNum r; r.words.clear(); uint64_t c = 0;
+            for (int i = (int)words.size() - 1; i >= (int)ws; --i) { uint64_t t = (c << 32) | words[i]; r.words.push_back((uint32_t)(t >> bs)); c = t & ((1ULL << bs) - 1); }
+            std::reverse(r.words.begin(), r.words.end()); r.norm(); return r;
         }
-
-        if (u_is_even) {
-            u = u_shifted;
-            x1 = x1_updated;
-        } else {
-            int cmp = BigInt::cmp(u, v);
-            if (cmp >= 0) {
-                u = BigInt::shift_right_1(BigInt::sub(u, v));
-                
-                BigInt temp;
-                if (BigInt::cmp(x1, x2) < 0) {
-                    temp = BigInt::sub(BigInt::add(x1, p), x2);
-                } else {
-                    temp = BigInt::sub(x1, x2);
-                }
-                if (!temp.is_even()) {
-                    temp = BigInt::add(temp, p);
-                }
-                x1 = BigInt::shift_right_1(temp);
-            } else {
-                v = BigInt::shift_right_1(BigInt::sub(v, u));
-
-                BigInt temp;
-                if (BigInt::cmp(x2, x1) < 0) {
-                    temp = BigInt::sub(BigInt::add(x2, p), x1);
-                } else {
-                    temp = BigInt::sub(x2, x1);
-                }
-                if (!temp.is_even()) {
-                    temp = BigInt::add(temp, p);
-                }
-                x2 = BigInt::shift_right_1(temp);
+        size_t bits() const {
+            if (words.size() == 1 && words[0] == 0) return 0;
+            size_t b = (words.size() - 1) * 32; uint32_t t = words.back();
+            while (t) { b++; t >>= 1; } return b;
+        }
+        static void divmod(const BigNum& a, const BigNum& b, BigNum& q, BigNum& r) {
+            if (b == BigNum(0)) throw std::runtime_error("div by 0");
+            if (a < b) { q = 0; r = a; return; }
+            r = a;
+            size_t sh = a.bits() - b.bits();
+            BigNum sb = b << sh; q.words.assign((sh / 32) + 1, 0);
+            for (int i = (int)sh; i >= 0; --i) {
+                if (r >= sb) { r.subInPlace(sb); q.words[i / 32] |= (1U << (i % 32)); }
+                sb.shr1();
             }
+            q.norm(); r.norm();
+        }
+        BigNum operator/(const BigNum& o) const { BigNum q, r; divmod(*this, o, q, r); return q; }
+        BigNum operator%(const BigNum& o) const { BigNum q, r; divmod(*this, o, q, r); return r; }
+
+        static void cmov(BigNum& d, const BigNum& s, uint32_t m) {
+            size_t n = std::max(d.words.size(), s.words.size()); d.words.resize(n, 0);
+            for (size_t i = 0; i < n; ++i) { uint32_t x = (i < s.words.size()) ? s.words[i] : 0; d.words[i] = (d.words[i] & ~m) | (x & m); }
+            d.norm();
+        }
+        static uint32_t zeroMask(const BigNum& a) { uint32_t x = 0; for (uint32_t w : a.words)x |= w; return x == 0 ? 0xFFFFFFFFu : 0u; }
+        static uint32_t evenMask(const BigNum& a) { return ((a.words[0] & 1) == 0) ? 0xFFFFFFFFu : 0u; }
+    };
+
+    namespace CM {
+        BigNum powMod(const BigNum& bIn, const BigNum& e, const BigNum& m) {
+            if (m == BigNum(1)) return BigNum(0);
+            BigNum r = 1, b = bIn % m; size_t n = e.bits();
+            for (size_t i = 0; i < n; ++i) { if (e.bit(i)) r = (r * b) % m; if (i + 1 < n) b = (b * b) % m; }
+            return r;
+        }
+        BigNum invMod(BigNum a, BigNum m) {
+            BigNum m0 = m, x0 = 0, x1 = 1;
+            if (m == BigNum(1)) return 0;
+            while (a > BigNum(1)) {
+                if (m == BigNum(0)) break;
+                BigNum q, r; BigNum::divmod(a, m, q, r);
+                a = m; m = r;
+                BigNum qx0 = (q * x0) % m0;
+                BigNum nx = (x1 >= qx0) ? (x1 - qx0) : (m0 - ((qx0 - x1) % m0));
+                x1 = x0; x0 = nx;
+            }
+            return x1 % m0;
+        }
+        // Constant-time бинарный расширенный алгоритм Евклида
+        BigNum ctBinaryInv(BigNum a, const BigNum& mod) {
+            if (mod == BigNum(1)) return BigNum(0);
+            BigNum u = a % mod, v = mod, x1 = 1, x2 = 0;
+            size_t N = 2 * mod.bits() + 2;
+            for (size_t i = 0; i < N; ++i) {
+                uint32_t ue = BigNum::evenMask(u);
+                { BigNum us = u; us.shr1(); BigNum xp = x1 + mod; uint32_t xo = (x1.words[0] & 1) ? 0xFFFFFFFFu : 0u; BigNum::cmov(x1, xp, ue & xo); BigNum xs = x1; xs.shr1(); BigNum::cmov(u, us, ue); BigNum::cmov(x1, xs, ue); }
+                uint32_t ve = BigNum::evenMask(v);
+                { BigNum vs = v; vs.shr1(); BigNum xp = x2 + mod; uint32_t xo = (x2.words[0] & 1) ? 0xFFFFFFFFu : 0u; BigNum::cmov(x2, xp, ve & xo); BigNum xs = x2; xs.shr1(); BigNum::cmov(v, vs, ve); BigNum::cmov(x2, xs, ve); }
+                int c = u.cmp(v); uint32_t ge = (c >= 0) ? 0xFFFFFFFFu : 0u;
+                BigNum um = (u >= v) ? (u - v) : BigNum(0), vm = (v >= u) ? (v - u) : BigNum(0);
+                BigNum x12 = (x1 >= x2) ? (x1 - x2) : (mod - ((x2 - x1) % mod));
+                BigNum x21 = (x2 >= x1) ? (x2 - x1) : (mod - ((x1 - x2) % mod));
+                BigNum::cmov(u, um, ge); BigNum::cmov(x1, x12, ge);
+                BigNum::cmov(v, vm, ~ge); BigNum::cmov(x2, x21, ~ge);
+                if (BigNum::zeroMask(u)) break;
+            }
+            return x2 % mod;
         }
     }
 
-    BigInt inv = BigInt::mod(x1, p);
-    return inv;
+    // SHA-384
+    namespace SHA384 {
+        static const uint64_t K[80] = {
+        0x428a2f98d728ae22ULL,0x7137449123ef65cdULL,0xb5c0fbcfec4d3b2fULL,0xe9b5dba58189dbbcULL,
+        0x3956c25bf348b538ULL,0x59f111f1b605d019ULL,0x923f82a4af194f9bULL,0xab1c5ed5da6d8118ULL,
+        0xd807aa98a3030242ULL,0x12835b0145706fbeULL,0x243185be4ee4b28cULL,0x550c7dc3d5ffb4e2ULL,
+        0x72be5d74f27b896fULL,0x80deb1fe3b1696b1ULL,0x9bdc06a725c71235ULL,0xc19bf174cf692694ULL,
+        0xe49b69c19ef14ad2ULL,0xefbe4786384f25e3ULL,0x0fc19dc68b8cd5b5ULL,0x240ca1cc77ac9c65ULL,
+        0x2de92c6f592b0275ULL,0x4a7484aa6ea6e483ULL,0x5cb0a9dcbd41fbd4ULL,0x76f988da831153b5ULL,
+        0x983e5152ee66dfabULL,0xa831c66d2db43210ULL,0xb00327c898fb213fULL,0xbf597fc7beef0ee4ULL,
+        0xc6e00bf33da88fc2ULL,0xd5a79147930aa725ULL,0x06ca6351e003826fULL,0x142929670a0e6e70ULL,
+        0x27b70a8546d22ffcULL,0x2e1b21385c26c926ULL,0x4d2c6dfc5ac42aedULL,0x53380d139d95b3dfULL,
+        0x650a73548baf63deULL,0x766a0abb3c77b2a8ULL,0x81c2c92e47edaee6ULL,0x92722c851482353bULL,
+        0xa2bfe8a14cf10364ULL,0xa81a664bbc423001ULL,0xc24b8b70d0f89791ULL,0xc76c51a30654be30ULL,
+        0xd192e819d6ef5218ULL,0xd69906245565a910ULL,0xf40e35855771202aULL,0x106aa07032bbd1b8ULL,
+        0x19a4c116b8d2d0c8ULL,0x1e376c085141ab53ULL,0x2748774cdf8eeb99ULL,0x34b0bcb5e19b48a8ULL,
+        0x391c0cb3c5c95a63ULL,0x4ed8aa4ae3418acbULL,0x5b9cca4f7763e373ULL,0x682e6ff3d6b2b8a3ULL,
+        0x748f82ee5defb2fcULL,0x78a5636f43172f60ULL,0x84c87814a1f0ab72ULL,0x8cc702081a6439ecULL,
+        0x90befffa23631e28ULL,0xa4506cebde82bde9ULL,0xbef9a3f7b2c67915ULL,0xc67178f2e372532bULL,
+        0xca273eceea26619cULL,0xd186b8c721c0c207ULL,0xeada7dd6cde0eb1eULL,0xf57d4f7fee6ed178ULL,
+        0x06f067aa72176fbaULL,0x0a637dc5a2c898a6ULL,0x113f9804bef90daeULL,0x1b710b35131c471bULL,
+        0x28db77f523047d84ULL,0x32caab7b40c72493ULL,0x3c9ebe0a15c9bebcULL,0x431d67c49c100d4cULL,
+        0x4cc5d4becb3e42b6ULL,0x597f299cfc657e2aULL,0x5fcb6fab3ad6faecULL,0x6c44198c4a475817ULL };
+        static inline uint64_t rr(uint64_t x, int n) { return (x >> n) | (x << (64 - n)); }
+        std::vector<uint8_t> hash(const std::vector<uint8_t>& m) {
+            uint64_t h[8] = { 0xcbbb9d5dc1059ed8ULL,0x629a292a367cd507ULL,0x9159015a3070dd17ULL,0x152fecd8f70e5939ULL,
+                           0x67332667ffc00b31ULL,0x8eb44a8768581511ULL,0xdb0c2e0d64f98fa7ULL,0x47b5481dbefa4fa4ULL };
+            std::vector<uint8_t> d = m;
+            uint64_t bl = (uint64_t)d.size() * 8;
+            d.push_back(0x80);
+            while (d.size() % 128 != 112) d.push_back(0);
+            for (int i = 0; i < 8; ++i) d.push_back(0);
+            for (int i = 7; i >= 0; --i) d.push_back((uint8_t)((bl >> (i * 8)) & 0xFF));
+            for (size_t off = 0; off < d.size(); off += 128) {
+                uint64_t w[80];
+                for (int i = 0; i < 16; ++i) { w[i] = 0; for (int j = 0; j < 8; ++j) w[i] = (w[i] << 8) | d[off + i * 8 + j]; }
+                for (int i = 16; i < 80; ++i) {
+                    uint64_t s0 = rr(w[i - 15], 1) ^ rr(w[i - 15], 8) ^ (w[i - 15] >> 7);
+                    uint64_t s1 = rr(w[i - 2], 19) ^ rr(w[i - 2], 61) ^ (w[i - 2] >> 6);
+                    w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+                }
+                uint64_t a = h[0], b = h[1], c = h[2], d4 = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+                for (int i = 0; i < 80; ++i) {
+                    uint64_t S1 = rr(e, 14) ^ rr(e, 18) ^ rr(e, 41);
+                    uint64_t ch = (e & f) ^ (~e & g);
+                    uint64_t t1 = hh + S1 + ch + K[i] + w[i];
+                    uint64_t S0 = rr(a, 28) ^ rr(a, 34) ^ rr(a, 39);
+                    uint64_t mj = (a & b) ^ (a & c) ^ (b & c);
+                    uint64_t t2 = S0 + mj;
+                    hh = g; g = f; f = e; e = d4 + t1; d4 = c; c = b; b = a; a = t1 + t2;
+                }
+                h[0] += a; h[1] += b; h[2] += c; h[3] += d4; h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+            }
+            std::vector<uint8_t> out(48);
+            for (int i = 0; i < 6; ++i) for (int j = 0; j < 8; ++j) out[i * 8 + j] = (uint8_t)((h[i] >> (56 - j * 8)) & 0xFF);
+            return out;
+        }
+    }
+
+    // OAEP (RSA-4096 / SHA-384)
+    namespace OAEP {
+        constexpr size_t RSA = 512, SH = 48, MAX = RSA - 2 * SH - 2; // 414
+
+        std::vector<uint8_t> mgf(const std::vector<uint8_t>& s, size_t n) {
+            std::vector<uint8_t> r; r.reserve(n + SH); uint32_t c = 0;
+            while (r.size() < n) {
+                std::vector<uint8_t> in = s;
+                in.push_back((uint8_t)((c >> 24) & 0xFF)); in.push_back((uint8_t)((c >> 16) & 0xFF));
+                in.push_back((uint8_t)((c >> 8) & 0xFF));  in.push_back((uint8_t)(c & 0xFF));
+                auto h = SHA384::hash(in); r.insert(r.end(), h.begin(), h.end()); c++;
+            }
+            r.resize(n); return r;
+        }
+        void xorv(std::vector<uint8_t>& a, const std::vector<uint8_t>& b) { for (size_t i = 0; i < a.size(); ++i)a[i] ^= b[i]; }
+
+        std::vector<uint8_t> pad(const std::vector<uint8_t>& in) {
+            if (in.size() > MAX) throw std::runtime_error("payload too large");
+            auto lh = SHA384::hash({});
+            size_t pl = RSA - in.size() - 2 * SH - 2;
+            std::vector<uint8_t> db = lh;
+            db.insert(db.end(), pl, 0); db.push_back(1); db.insert(db.end(), in.begin(), in.end());
+            std::vector<uint8_t> sd(SH); std::random_device rd;
+            for (size_t i = 0; i < SH; i += 4) { uint32_t r = rd(); sd[i] = r & 0xFF; if (i + 1 < SH)sd[i + 1] = (r >> 8) & 0xFF; if (i + 2 < SH)sd[i + 2] = (r >> 16) & 0xFF; if (i + 3 < SH)sd[i + 3] = (r >> 24) & 0xFF; }
+            std::vector<uint8_t> mdb = db; xorv(mdb, mgf(sd, RSA - SH - 1));
+            std::vector<uint8_t> msd = sd; xorv(msd, mgf(mdb, SH));
+            std::vector<uint8_t> e; e.reserve(RSA); e.push_back(0);
+            e.insert(e.end(), msd.begin(), msd.end()); e.insert(e.end(), mdb.begin(), mdb.end());
+            return e;
+        }
+        std::vector<uint8_t> unpad(const std::vector<uint8_t>& eb) {
+            if (eb.size() != RSA || eb[0] != 0) throw std::runtime_error("OAEP: bad framing");
+            std::vector<uint8_t> msd(eb.begin() + 1, eb.begin() + 1 + SH);
+            std::vector<uint8_t> mdb(eb.begin() + 1 + SH, eb.end());
+            std::vector<uint8_t> sd = msd; xorv(sd, mgf(mdb, SH));
+            std::vector<uint8_t> db = mdb; xorv(db, mgf(sd, RSA - SH - 1));
+            auto eh = SHA384::hash({});
+            uint8_t bad = 0; for (size_t i = 0; i < SH; ++i) bad |= db[i] ^ eh[i];
+            size_t sp = 0; uint8_t sf = 0;
+            for (size_t i = SH; i < db.size(); ++i) { if (db[i] == 1 && !sf) { sp = i; sf = 1; } }
+            if (!sf || bad) throw std::runtime_error("OAEP: invalid padding");
+            return std::vector<uint8_t>(db.begin() + sp + 1, db.end());
+        }
+    }
+
+    namespace U {
+        BigNum pack(const std::vector<uint8_t>& b) {
+            BigNum r; r.words.clear();
+            if (b.empty()) { r.words.push_back(0); return r; }
+            size_t n = b.size(), p = (4 - (n % 4)) % 4;
+            std::vector<uint8_t> buf(p, 0); buf.insert(buf.end(), b.begin(), b.end());
+            for (size_t i = 0; i < buf.size(); i += 4) {
+                uint32_t w = ((uint32_t)buf[i] << 24) | ((uint32_t)buf[i + 1] << 16) | ((uint32_t)buf[i + 2] << 8) | (uint32_t)buf[i + 3];
+                r.words.push_back(w);
+            }
+            std::reverse(r.words.begin(), r.words.end()); r.norm(); return r;
+        }
+        std::vector<uint8_t> unpack(const BigNum& v, size_t t) {
+            std::vector<uint8_t> o; o.reserve(v.words.size() * 4);
+            for (int i = (int)v.words.size() - 1; i >= 0; --i) {
+                uint32_t w = v.words[i];
+                o.push_back((uint8_t)((w >> 24) & 0xFF)); o.push_back((uint8_t)((w >> 16) & 0xFF));
+                o.push_back((uint8_t)((w >> 8) & 0xFF));  o.push_back((uint8_t)(w & 0xFF));
+            }
+            size_t s = 0; while (s + 1 < o.size() && o[s] == 0) s++;
+            o.erase(o.begin(), o.begin() + s);
+            if (o.size() < t) o.insert(o.begin(), t - o.size(), 0);
+            else if (o.size() > t) o.erase(o.begin(), o.begin() + (o.size() - t));
+            return o;
+        }
+    }
+
+    struct Pub { BigNum N, e; };
+    struct Priv { BigNum p, q, d, dP, dQ, qInv; };
+
+    // ============ ВСТАВЬТЕ СЮДА СВОИ p И q (2048 бит) ============
+    static const char* P_HEX = "C972F29015EBD19724D2C4F867F212FEE1E0C96087B2623FC9F694729C83B73A2F7F58855677DFCC3EA6BAD8A4CD1F3AF4962F5DE1EAEA26BCB682FAD4A1B1EA084981BA8E904523DF65B0BA587BE40FDD482E2A1DC98A39F61CF42134D9C566C433B87FA7EAE18EFF538B442A7B8BFDBEDAF33633897B6EA4028F522D78E759872CC1E7BDF76358D81BD3B07EF8CB54992FAB704166D975A8868B9C8F84EB71EFF75A123313326D0F5B92006608B803EA44D67DAF3FC228A823F3EF7FBF14B35A0F5954D092DA168E440746DB7A89A7EA7B88212E217D478878401873549C6130CCC51F58D4A12683E4BB37070816F8338B18ECE0C1A950620334E51F06F179";
+    static const char* Q_HEX = "C19712B9FE8CECE2DAE3671547AAD8645806020046CAE3E079208050CFE7EC7F0279FF355F4BC49C94FF17DFF8EA35EDBC75DF8EE8306BB9C599B250B9AE5BB12CECF14483836BA0787BFBD3420DF151CFF422E6F8B5C7E912D07E5680A1A8D3C67797C63ECC64A1FE2021E45681A5A48539308F4D5A2326EEB3572B1D49141DCAADDD3669A170F47482DFB231E19B9B8798E5836E9BC26CCF1052A622FA381FD43AB06E66DCE4594599D9ECAC83AB41BED10F1E5E2F050FAB13F557322BEC3949AB45277D73E81F5B6147B4BABBEA737D223FCD623D8AF06ACA56D7330673E93535EA850A0B1D756D2AD85C7093C502FFBB6880EC7A5B8CB44489807092610A";
+    // ============================================================
+
+    void setup(Pub& pub, Priv& priv) {
+        BigNum p(P_HEX), q(Q_HEX);
+        pub.N = p * q; pub.e = 65537;
+        BigNum phi = (p - 1) * (q - 1);
+        BigNum d = CM::invMod(pub.e, phi);
+        priv.p = p; priv.q = q; priv.d = d;
+        priv.dP = d % (p - 1); priv.dQ = d % (q - 1);
+        priv.qInv = CM::ctBinaryInv(q, p);
+        if ((q * priv.qInv) % p != BigNum(1)) throw std::runtime_error("qInv self-test failed");
+    }
+
+    BigNum encrypt(const BigNum& m, const Pub& k) { return CM::powMod(m, k.e, k.N); }
+    BigNum decrypt(const BigNum& c, const Priv& k) {
+        BigNum m1 = CM::powMod(c, k.dP, k.p), m2 = CM::powMod(c, k.dQ, k.q);
+        BigNum diff = (m1 >= m2) ? (m1 - m2) : (k.p - (m2 - m1));
+        BigNum h = (diff * k.qInv) % k.p;
+        return m2 + h * k.q;
+    }
+
+    void test(const std::vector<uint8_t>& payload, const Pub& pub, const Priv& priv) {
+        std::cout << "Вход: " << payload.size() << " байт. ";
+        auto t0 = std::chrono::high_resolution_clock::now();
+        try {
+            auto padded = OAEP::pad(payload);
+            BigNum m = U::pack(padded);
+            BigNum c = encrypt(m, pub);
+            BigNum dec = decrypt(c, priv);
+            auto dp = U::unpack(dec, OAEP::RSA);
+            auto out = OAEP::unpad(dp);
+            if (out != payload) throw std::runtime_error("mismatch");
+            std::cout << "OK (" << out.size() << " байт)\n";
+        }
+        catch (const std::exception& e) {
+            std::cout << "Ошибка: " << e.what() << "\n";
+        }
+        auto t1 = std::chrono::high_resolution_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        std::cout << "    Время: " << ms << " мс\n";
+    }
+
 }
 
-} // namespace NumberTheory
-
-// OAEP  using sha-384
-namespace OAEP {
-
-constexpr size_t HLEN = 48;             // SHA-384 hash = 48 bytes
-constexpr size_t KEY_BYTES_4096 = 512; // 4096 bits = 512 bytes
-
-void mgf1(const uint8_t* seed, size_t seed_len, uint8_t* mask, size_t mask_len) {
-    uint8_t counter_bytes[4];
-    uint32_t counter = 0;
-    size_t generated = 0;
-
-    vector<uint8_t> buf(seed_len + 4);
-    memcpy(buf.data(), seed, seed_len);
-
-    uint8_t digest[HLEN];
-
-    while (generated < mask_len) {
-        counter_bytes[0] = static_cast<uint8_t>((counter >> 24) & 0xFF);
-        counter_bytes[1] = static_cast<uint8_t>((counter >> 16) & 0xFF);
-        counter_bytes[2] = static_cast<uint8_t>((counter >> 8) & 0xFF);
-        counter_bytes[3] = static_cast<uint8_t>(counter & 0xFF);
-
-        memcpy(buf.data() + seed_len, counter_bytes, 4);
-        Cryptography::SHA384::hash(buf.data(), buf.size(), digest);
-
-        size_t to_copy = min(HLEN, mask_len - generated);
-        memcpy(mask + generated, digest, to_copy);
-
-        generated += to_copy;
-        counter++;
-    }
-}
-
-vector<uint8_t> encode(const vector<uint8_t>& message, const vector<uint8_t>& seed) {
-    size_t k = KEY_BYTES_4096;
-    size_t max_msg_len = k - 2 * HLEN - 2;
-    if (message.size() > max_msg_len) {
-        throw invalid_argument("message too long for oaep-sha384");
-    }
-
-    uint8_t lHash[HLEN];
-    Cryptography::SHA384::hash(nullptr, 0, lHash);
-
-    size_t db_len = k - HLEN - 1;
-    vector<uint8_t> DB(db_len, 0x00);
-
-    memcpy(DB.data(), lHash, HLEN);
-    size_t ps_len = db_len - HLEN - 1 - message.size();
-    DB[HLEN + ps_len] = 0x01;
-    if (!message.empty()) {
-        memcpy(DB.data() + HLEN + ps_len + 1, message.data(), message.size());
-    }
-
-    vector<uint8_t> dbMask(db_len);
-    mgf1(seed.data(), HLEN, dbMask.data(), db_len);
-
-    vector<uint8_t> maskedDB(db_len);
-    for (size_t i = 0; i < db_len; ++i) {
-        maskedDB[i] = DB[i] ^ dbMask[i];
-    }
-
-    vector<uint8_t> seedMask(HLEN);
-    mgf1(maskedDB.data(), db_len, seedMask.data(), HLEN);
-
-    vector<uint8_t> maskedSeed(HLEN);
-    for (size_t i = 0; i < HLEN; ++i) {
-        maskedSeed[i] = seed[i] ^ seedMask[i];
-    }
-
-    vector<uint8_t> EM(k, 0x00);
-    memcpy(EM.data() + 1, maskedSeed.data(), HLEN);
-    memcpy(EM.data() + 1 + HLEN, maskedDB.data(), db_len);
-
-    return EM;
-}
-
-bool decode_constant_time(const vector<uint8_t>& EM, vector<uint8_t>& out_message) {
-    size_t k = KEY_BYTES_4096;
-    size_t db_len = k - HLEN - 1;
-
-    if (EM.size() != k) return false;
-
-    uint8_t error_mask = EM[0];
-
-    const uint8_t* maskedSeed = EM.data() + 1;
-    const uint8_t* maskedDB = EM.data() + 1 + HLEN;
-
-    vector<uint8_t> seedMask(HLEN);
-    mgf1(maskedDB, db_len, seedMask.data(), HLEN);
-
-    vector<uint8_t> seed(HLEN);
-    for (size_t i = 0; i < HLEN; ++i) {
-        seed[i] = maskedSeed[i] ^ seedMask[i];
-    }
-
-    vector<uint8_t> dbMask(db_len);
-    mgf1(seed.data(), HLEN, dbMask.data(), db_len);
-
-    vector<uint8_t> DB(db_len);
-    for (size_t i = 0; i < db_len; ++i) {
-        DB[i] = maskedDB[i] ^ dbMask[i];
-    }
-
-    uint8_t lHash[HLEN];
-    Cryptography::SHA384::hash(nullptr, 0, lHash);
-    for (size_t i = 0; i < HLEN; ++i) {
-        error_mask |= (DB[i] ^ lHash[i]);
-    }
-
-    size_t one_index = 0;
-    uint8_t found_one = 0;
-
-    for (size_t i = HLEN; i < db_len; ++i) {
-        uint8_t is_one = (DB[i] == 0x01) ? 1 : 0;
-        uint8_t take = is_one & (~found_one);
-        one_index = (take * i) | ((~take) & one_index);
-        found_one |= is_one;
-    }
-
-    error_mask |= (found_one ^ 0x01);
-
-    out_message.clear();
-    if (error_mask == 0) {
-        size_t msg_start = one_index + 1;
-        out_message.assign(DB.begin() + msg_start, DB.end());
-        return true;
-    }
-
-    return false;
-}
-
-} // namespace OAEP
-
-// rsa key structure and garner algorithm decryption
-struct RSAKey {
-    BigInt N, e, d;
-    BigInt p, q;
-    BigInt dp, dq, qinv;
-};
-
-class RSACRTCore {
-public:
-    static BigInt encrypt(const BigInt& m, const RSAKey& key) {
-        return BigInt::mod_pow(m, key.e, key.N);
-    }
-
-    static BigInt decrypt_crt(const BigInt& c, const RSAKey& key) {
-        BigInt m1 = BigInt::mod_pow(c, key.dp, key.p);
-        BigInt m2 = BigInt::mod_pow(c, key.dq, key.q);
-
-        BigInt h;
-        if (BigInt::cmp(m1, m2) < 0) {
-            BigInt temp = BigInt::sub(BigInt::add(m1, key.p), m2);
-            h = BigInt::mod(BigInt::mul(temp, key.qinv), key.p);
-        } else {
-            BigInt temp = BigInt::sub(m1, m2);
-            h = BigInt::mod(BigInt::mul(temp, key.qinv), key.p);
-        }
-
-        BigInt m = BigInt::add(m2, BigInt::mul(h, key.q));
-        return m;
-    }
-};
-
-// entry point and verification flow
 int main() {
-    cout << "Initializing RSA-4096 parameters..." << endl;
+    setlocale(LC_ALL, "rus");
+    RSA9::Pub pub; RSA9::Priv priv;
+    try { RSA9::setup(pub, priv); }
+    catch (const std::exception& e) { std::cerr << "setup error: " << e.what() << "\n"; return 1; }
 
-    // valid 2048-bit prime numbers from rfc 3526 and rfc 7919
-    string p_hex = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74"
-                  "020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F1437"
-                  "4FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED"
-                  "EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF05"
-                  "98DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB"
-                  "9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B"
-                  "E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF695581718"
-                  "3995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF";
-
-    string q_hex = "FFFFFFFFFFFFFFFFADF85458A2BB4A9AAFDC5620273D3CF1D8B9C583CE2D3695"
-                  "A9E13641146433FBCC939DCE249B3C1A2CA32741ACF12C5CD6179E40B01D9D99"
-                  "99059F5441D91E4759451996E252D5E0FA716F3D3C1F4FA87F3B563D5F5494C0"
-                  "1C6615EC8225A7BD9142EE8D105D5C328227B6F7F6F5711C750B69FB5E0325B5"
-                  "91B65B706C8369ECF2054B1F6305F884A234204646DF72E293A52140C836DDF2"
-                  "1A3615F8A002BC0681A953E5F18C642E059F131A4BE911DDF47F202513F57F6B"
-                  "0FDD6476579899138F3223030467C9D924190C1F576E27A6C9E0C7A5F3E79C29"
-                  "3677464A4D6820C78A0558DD3F271171810931557D079366DF0473EF226D41BE"
-                  "20042D3844D1FFFFFFFFFFFFFFFF";
-
-    RSAKey key;
-    key.p = BigInt::from_hex(p_hex);
-    key.q = BigInt::from_hex(q_hex);
-    key.N = BigInt::mul(key.p, key.q);
-    key.e = BigInt(65537);
-
-    // key generation parameters calculation
-    BigInt p_1 = BigInt::sub(key.p, BigInt(1));
-    BigInt q_1 = BigInt::sub(key.q, BigInt(1));
-    BigInt phi = BigInt::mul(p_1, q_1);
-
-    key.d = NumberTheory::ct_mod_inverse_binary_gcd(key.e, phi);
-    key.dp = BigInt::mod(key.d, p_1);
-    key.dq = BigInt::mod(key.d, q_1);
-    key.qinv = NumberTheory::ct_mod_inverse_binary_gcd(key.q, key.p);
-
-    cout << "[+] Keys p and q successfully loaded (2048-bit RFC primes)." << endl;
-    cout << "[+] Calculated private key d and CRT parameters (dp, dq)." << endl;
-    cout << "[+] Calculated q_inv using binary GCD algorithm." << endl;
-
-    vector<uint8_t> secret_msg = {'T', 'e', 's', 't', ' ', 'M', 'e', 's', 's', 'a', 'g', 'e'};
-    vector<uint8_t> seed(OAEP::HLEN, 0x3C);
-
-    // 1. oaep encoding
-    vector<uint8_t> EM = OAEP::encode(secret_msg, seed);
-    cout << "[+] OAEP padding created." << endl;
-
-    // 2. rsa encryption
-    BigInt m = BigInt::from_bytes(EM);
-    BigInt c = RSACRTCore::encrypt(m, key);
-    cout << "[+] RSA encryption completed." << endl;
-
-    // 3. rsa decryption via garner's crt
-    BigInt decrypted_m = RSACRTCore::decrypt_crt(c, key);
-    cout << "[+] RSA decryption using Garner's CRT completed." << endl;
-
-    // 4. bytes extraction and oaep decoding
-    vector<uint8_t> decrypted_EM = decrypted_m.to_bytes(OAEP::KEY_BYTES_4096);
-
-    vector<uint8_t> recovered_msg;
-    if (OAEP::decode_constant_time(decrypted_EM, recovered_msg)) {
-        cout << "[+] Successfully decrypted: ";
-        for (char ch : recovered_msg) cout << ch;
-        cout << endl;
-    } else {
-        cout << "[-] OAEP decoding error!" << endl;
-    }
-
+    RSA9::test({}, pub, priv);
+    RSA9::test(std::vector<uint8_t>(414, 0xAB), pub, priv);
+    std::string s = "Refactored Variant 9 Test";
+    RSA9::test(std::vector<uint8_t>(s.begin(), s.end()), pub, priv);
     return 0;
 }
