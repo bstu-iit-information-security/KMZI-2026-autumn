@@ -1,5 +1,4 @@
 ﻿#include <iostream>
-#include <vector>
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -13,6 +12,7 @@ private:
     uint16_t poly;
 public:
     explicit GaloisField(uint16_t p_x = 0x1C3) : poly(p_x) {}
+
     uint8_t add(uint8_t a, uint8_t b) const {
         return a ^ b;
     }
@@ -56,7 +56,6 @@ public:
     void generate_sbox(array<uint8_t, 256>& sbox) const {
         for (int i = 0; i < 256; ++i) {
             uint8_t inv = inverse(static_cast<uint8_t>(i));
-            uint8_t s = inv;
             uint8_t c = 0x63;
             uint8_t transformed = 0;
             for (int bit = 0; bit < 8; ++bit) {
@@ -137,12 +136,6 @@ private:
             uint32_t temp = round_keys[i + 7];
             uint32_t rotated = rotl(temp, 9);
             uint32_t substituted = sub_word(rotated);
-            uint32_t constant = 0;
-            uint32_t c_val = 0x01;
-            for (int bit = 0; bit < 32; ++bit) {
-                uint8_t bit_val = (c_val >> bit) & 1;
-                constant |= (static_cast<uint32_t>(bit_val) << bit);
-            }
             uint32_t g_result = g_function(substituted, round_keys[i]);
             round_keys[i + 8] = g_result ^ round_keys[i];
         }
@@ -162,22 +155,10 @@ private:
 
     void shift_rows(array<uint8_t, 16>& state) const {
         array<uint8_t, 16> temp = state;
-        state[0] = temp[0];
-        state[1] = temp[5];
-        state[2] = temp[10];
-        state[3] = temp[15];
-        state[4] = temp[4];
-        state[5] = temp[9];
-        state[6] = temp[14];
-        state[7] = temp[3];
-        state[8] = temp[8];
-        state[9] = temp[13];
-        state[10] = temp[2];
-        state[11] = temp[7];
-        state[12] = temp[12];
-        state[13] = temp[1];
-        state[14] = temp[6];
-        state[15] = temp[11];
+        state[0] = temp[0];   state[1] = temp[5];   state[2] = temp[10];  state[3] = temp[15];
+        state[4] = temp[4];   state[5] = temp[9];   state[6] = temp[14];  state[7] = temp[3];
+        state[8] = temp[8];   state[9] = temp[13];  state[10] = temp[2];  state[11] = temp[7];
+        state[12] = temp[12]; state[13] = temp[1];  state[14] = temp[6];  state[15] = temp[11];
     }
 
     void mix_columns(array<uint8_t, 16>& state) const {
@@ -267,12 +248,10 @@ public:
     }
 
     void encrypt(const array<uint8_t, 12>& iv,
-        const vector<uint8_t>& plaintext,
-        const vector<uint8_t>& aad,
-        vector<uint8_t>& ciphertext,
+        const uint8_t* plaintext, size_t plaintext_len,
+        const uint8_t* aad, size_t aad_len,
+        uint8_t* ciphertext,
         array<uint8_t, 16>& tag) {
-
-        ciphertext.resize(plaintext.size());
 
         array<uint8_t, 16> cb0;
         cb0.fill(0);
@@ -281,7 +260,7 @@ public:
         array<uint8_t, 16> cb = cb0;
         uint32_t counter = 1;
 
-        size_t blocks = (plaintext.size() + 15) / 16;
+        size_t blocks = (plaintext_len + 15) / 16;
         for (size_t i = 0; i < blocks; ++i) {
             counter++;
             cb[12] = (counter >> 24) & 0xFF;
@@ -292,7 +271,7 @@ public:
             array<uint8_t, 16> encrypted_cb;
             belt.encrypt_block(cb.data(), encrypted_cb.data());
 
-            size_t block_len = min<size_t>(16, plaintext.size() - i * 16);
+            size_t block_len = min<size_t>(16, plaintext_len - i * 16);
             for (size_t j = 0; j < block_len; ++j) {
                 ciphertext[i * 16 + j] = plaintext[i * 16 + j] ^ encrypted_cb[j];
             }
@@ -301,23 +280,23 @@ public:
         array<uint8_t, 16> ghash_acc;
         ghash_acc.fill(0);
 
-        size_t aad_blocks = (aad.size() + 15) / 16;
+        size_t aad_blocks = (aad_len + 15) / 16;
         for (size_t i = 0; i < aad_blocks; ++i) {
             array<uint8_t, 16> block;
             block.fill(0);
-            size_t len = min<size_t>(16, aad.size() - i * 16);
-            memcpy(block.data(), aad.data() + i * 16, len);
+            size_t len = min<size_t>(16, aad_len - i * 16);
+            memcpy(block.data(), aad + i * 16, len);
 
             for (int j = 0; j < 16; ++j) ghash_acc[j] ^= block[j];
             ghash_multiply(ghash_acc, H);
         }
 
-        size_t ct_blocks = (ciphertext.size() + 15) / 16;
+        size_t ct_blocks = (plaintext_len + 15) / 16;
         for (size_t i = 0; i < ct_blocks; ++i) {
             array<uint8_t, 16> block;
             block.fill(0);
-            size_t len = min<size_t>(16, ciphertext.size() - i * 16);
-            memcpy(block.data(), ciphertext.data() + i * 16, len);
+            size_t len = min<size_t>(16, plaintext_len - i * 16);
+            memcpy(block.data(), ciphertext + i * 16, len);
 
             for (int j = 0; j < 16; ++j) ghash_acc[j] ^= block[j];
             ghash_multiply(ghash_acc, H);
@@ -325,8 +304,8 @@ public:
 
         array<uint8_t, 16> len_block;
         len_block.fill(0);
-        uint64_t aad_bits = aad.size() * 8;
-        uint64_t ct_bits = ciphertext.size() * 8;
+        uint64_t aad_bits = aad_len * 8;
+        uint64_t ct_bits = plaintext_len * 8;
 
         for (int i = 0; i < 8; ++i) {
             len_block[7 - i] = (aad_bits >> (i * 8)) & 0xFF;
@@ -353,7 +332,7 @@ public:
     }
 };
 
-void print_hex(const string& label, const uint8_t* data, size_t len) {
+void print_hex(const char* label, const uint8_t* data, size_t len) {
     cout << left << setw(25) << label << ": ";
     for (size_t i = 0; i < len; ++i) {
         cout << hex << setw(2) << setfill('0') << static_cast<int>(data[i]) << " ";
@@ -374,27 +353,30 @@ int main() {
         0x10, 0x20, 0x30, 0x40
     };
 
-    string plain_str = "eto text dlya BelT shifrovania s constant time";
-    vector<uint8_t> plaintext(plain_str.begin(), plain_str.end());
+    const char* plain_str = "eto text dlya BelT shifrovania s constant time";
+    size_t plain_len = strlen(plain_str);
+    const uint8_t* plaintext = reinterpret_cast<const uint8_t*>(plain_str);
 
-    string aad_str = "zagolovki dlya BelT";
-    vector<uint8_t> aad(aad_str.begin(), aad_str.end());
+    const char* aad_str = "zagolovki dlya BelT";
+    size_t aad_len = strlen(aad_str);
+    const uint8_t* aad = reinterpret_cast<const uint8_t*>(aad_str);
 
     cout << "\n=== ORIGINAL DATA ===" << endl;
     cout << "Plaintext (String): " << plain_str << endl;
-    print_hex("Plaintext (HEX)", plaintext.data(), plaintext.size());
+    print_hex("Plaintext (HEX)", plaintext, plain_len);
     cout << "AAD: " << aad_str << endl;
 
     GCM_BelT gcm(key, 0x1C3);
-    vector<uint8_t> ciphertext;
+
+    uint8_t ciphertext[128] = { 0 };
     array<uint8_t, 16> tag;
 
-    gcm.encrypt(iv, plaintext, aad, ciphertext, tag);
+    gcm.encrypt(iv, plaintext, plain_len, aad, aad_len, ciphertext, tag);
 
     cout << "\n=== ENCRYPTION RESULTS ===" << endl;
     print_hex("Master Key", key.data(), key.size());
     print_hex("IV (96-bit)", iv.data(), iv.size());
-    print_hex("Ciphertext", ciphertext.data(), ciphertext.size());
+    print_hex("Ciphertext", ciphertext, plain_len);
     print_hex("Authentication Tag", tag.data(), tag.size());
 
     array<uint8_t, 16> invalid_tag = tag;
