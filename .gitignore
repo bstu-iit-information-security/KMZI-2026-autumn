@@ -1,0 +1,13 @@
+# Служебные файлы Visual Studio
+.vs/
+Debug/
+Release/
+x64/
+*.user
+*.suo
+*.db
+*.openeddf
+*.ilk
+*.obj
+*.pdb
+*.exe
