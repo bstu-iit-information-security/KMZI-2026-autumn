@@ -551,7 +551,7 @@ int main() {
     RSA9::Pub pub;
     RSA9::Priv priv;
     try { RSA9::setup(pub, priv); }
-    catch (const std::exception& e) { std::cerr << "setup error: " << e.what() << "\n"; return 1; }
+    catch (const std::exception& e) { std::cerr << "setup errorr: " << e.what() << "\n"; return 1; }
 
     RSA9::test(nullptr, 0, pub, priv);
 
