@@ -99,7 +99,8 @@ inline cpp_int random_bits(int bits, RNG& rng) {
     int words = (bits + 63) / 64;
     for (int i = 0; i < words; ++i) r = (r << 64) | rng.next();
     int excess = words * 64 - bits;
-    if (excess > 0) r >>= excess;
+    r >>= excess;
+    r &= (cpp_int(1) << bits) - 1;
     return r;
 }
 
@@ -107,8 +108,7 @@ inline cpp_int generate_prime_equal_bits(int bits, RNG& rng) {
     for (;;) {
         cpp_int candidate = random_bits(bits, rng);
         candidate |= (cpp_int(1) << (bits - 1));
-        candidate |= (cpp_int(1) << (bits - 2));
-        candidate |= 1;                       // odd
+        candidate |= 1;
         if (miller_rabin(candidate, 40)) return candidate;
     }
 }
@@ -127,7 +127,6 @@ inline void generate_keypair(RSAKey& key, int bits, const cpp_int& e, RNG& rng) 
         q = generate_prime_equal_bits(half, rng);
         if (p == q) continue;
         N = p * q;
-        if ((int)boost::multiprecision::msb(N) + 1 != bits) continue;
         lambda = lcm(p - 1, q - 1);
         cpp_int x, y;
         if (ext_gcd(e, lambda, x, y) == 1) break;
