@@ -1,0 +1,223 @@
+Connecting to 127.0.0.1
+CONNECTED(00000005)
+Sent TLS Record
+Header:
+  Version = TLS 1.0 (0x301)
+  Content Type = Handshake (22)
+  Length = 463
+    ClientHello, Length=459
+      client_version=0x303 (TLS 1.2)
+      Random:
+        gmt_unix_time=0xA4A1FD06
+        random_bytes (len=28): 66CE58909E84421497EA7E6316E72626C24A2702F4933A6AA972A03D
+      session_id (len=32): D07E6CC2A234FCFFC1C25354695D1D5A057849962CAA31D5892907A1C926C3CA
+      cipher_suites (len=2)
+        {0x13, 0x01} TLS_AES_128_GCM_SHA256
+      compression_methods (len=1)
+        No Compression (0x00)
+      extensions, length = 384
+        extension_type=server_name(0), length=14
+          0000 - 00 0c 00 00 09 6c 6f 63-61 6c 68 6f 73 74      .....localhost
+        extension_type=ec_point_formats(11), length=2
+          uncompressed (0)
+        extension_type=supported_groups(10), length=4
+          ecdh_x25519 (29)
+        extension_type=session_ticket(35), length=0
+        extension_type=encrypt_then_mac(22), length=0
+        extension_type=extended_master_secret(23), length=0
+        extension_type=signature_algorithms(13), length=42
+          mldsa65 (0x0905)
+          mldsa87 (0x0906)
+          mldsa44 (0x0904)
+          ecdsa_secp256r1_sha256 (0x0403)
+          ecdsa_secp384r1_sha384 (0x0503)
+          ecdsa_secp521r1_sha512 (0x0603)
+          ed25519 (0x0807)
+          ed448 (0x0808)
+          ecdsa_brainpoolP256r1tls13_sha256 (0x081a)
+          ecdsa_brainpoolP384r1tls13_sha384 (0x081b)
+          ecdsa_brainpoolP512r1tls13_sha512 (0x081c)
+          rsa_pss_pss_sha256 (0x0809)
+          rsa_pss_pss_sha384 (0x080a)
+          rsa_pss_pss_sha512 (0x080b)
+          rsa_pss_rsae_sha256 (0x0804)
+          rsa_pss_rsae_sha384 (0x0805)
+          rsa_pss_rsae_sha512 (0x0806)
+          rsa_pkcs1_sha256 (0x0401)
+          rsa_pkcs1_sha384 (0x0501)
+          rsa_pkcs1_sha512 (0x0601)
+        extension_type=supported_versions(43), length=3
+          TLS 1.3 (772)
+        extension_type=psk_key_exchange_modes(45), length=2
+          psk_dhe_ke (1)
+        extension_type=key_share(51), length=38
+            NamedGroup: ecdh_x25519 (29)
+            key_exchange:  (len=32): FAD3C565CC8AD4D09E491970F4742E4218DC072490A30FE67926C25FF9499412
+        extension_type=psk(41), length=235
+          0000 - 00 c6 00 c0 bf 4f 12 1e-5e 8a 4b fc 62 77 78   .....O..^.K.bwx
+          000f - 9f 83 c1 47 ee 74 70 2b-b2 b4 a3 2e 80 5b 38   ...G.tp+.....[8
+          001e - 58 9f 2c 25 76 e2 76 72-38 24 f5 dd f5 d4 e3   X.,%v.vr8$.....
+          002d - c5 6e 32 23 eb 82 34 87-af 04 d9 c1 a0 42 bb   .n2#..4......B.
+          003c - 5b 57 26 a1 39 e7 6e 38-ec 17 e3 8a 74 da 35   [W&.9.n8....t.5
+          004b - 6b 7f a9 2c ca a2 0f 6c-2d f7 83 e2 aa ea c4   k..,...l-......
+          005a - 0c 28 d0 6b 68 9f 71 da-db 93 ce d2 30 41 1b   .(.kh.q.....0A.
+          0069 - fe 89 53 cb 4c 21 dd 5d-03 c3 26 64 b2 7b d2   ..S.L!.]..&d.{.
+          0078 - 1a 98 f4 63 49 e8 43 b1-3d 9d 23 ed 63 e9 73   ...cI.C.=.#.c.s
+          0087 - 4c 5a c4 ad 97 1c d0 68-92 16 d6 bf 9c 3f 5f   LZ.....h.....?_
+          0096 - 72 14 e2 0e 94 ca 1b a0-1c 47 28 dd b5 1b 31   r........G(...1
+          00a5 - 8f 00 3c 17 02 15 fd 8a-95 d4 4b 74 f3 5d 56   ..<.......Kt.]V
+          00b4 - 49 59 87 3b aa b7 22 5f-74 19 a2 32 fc 03 62   IY.;.."_t..2..b
+          00c3 - f6 39 51 85 b3 00 21 20-ae da 41 44 9a d3 c9   .9Q...! ..AD...
+          00d2 - c4 02 f9 f9 1c a2 0c cf-4b 8f 4a 95 07 8f f6   ........K.J....
+          00e1 - d7 06 44 ae d0 8f 3e eb-7f a7                  ..D...>...
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = Handshake (22)
+  Length = 128
+    ServerHello, Length=124
+      server_version=0x303 (TLS 1.2)
+      Random:
+        gmt_unix_time=0x38BA10D1
+        random_bytes (len=28): EEE5AB2813E2D5241B53CEA7D5C84861B374FBA78069C90063F3AB6C
+      session_id (len=32): D07E6CC2A234FCFFC1C25354695D1D5A057849962CAA31D5892907A1C926C3CA
+      cipher_suite {0x13, 0x01} TLS_AES_128_GCM_SHA256
+      compression_method: No Compression (0x00)
+      extensions, length = 52
+        extension_type=supported_versions(43), length=2
+            TLS 1.3 (772)
+        extension_type=key_share(51), length=36
+            NamedGroup: ecdh_x25519 (29)
+            key_exchange:  (len=32): 732B7D9E7A5F793CE28DC37F468B324B9B40ABD6933B7DB6CCB849FB64AAEC1A
+        extension_type=psk(41), length=2
+          0000 - 00 00                                          ..
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ChangeCipherSpec (20)
+  Length = 1
+    change_cipher_spec (1)
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 23
+  Inner Content Type = Handshake (22)
+    EncryptedExtensions, Length=2
+      No extensions
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 53
+  Inner Content Type = Handshake (22)
+    Finished, Length=32
+      verify_data (len=32): BCC24F204667D50D8C4B2F261C633F73EECBD9DD42DCBBD71EA57A93945E16EF
+
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ChangeCipherSpec (20)
+  Length = 1
+    change_cipher_spec (1)
+
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 53
+  Inner Content Type = Handshake (22)
+    Finished, Length=32
+      verify_data (len=32): 731B4E88753628898A07B3D25873E5DE065559ED1B90B8439E072E7B2701FE63
+
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIBpTCCAUugAwIBAgICEAAwCgYIKoZIzj0EAwIwPTELMAkGA1UEBhMCQlkxEDAO
+BgNVBAoMB0xhYiBQS0kxHDAaBgNVBAMME0xhYiBJbnRlcm1lZGlhdGUgQ0EwHhcN
+MjYxMTEwMTQ1MzQ2WhcNMjcxMTEwMTQ1MzQ2WjAUMRIwEAYDVQQDDAlsb2NhbGhv
+c3QwKjAFBgMrZXADIQAHdmwwLqlkEMQhYpKtXtlVQV3CXok6C57HlqJgQjQL4KOB
+kjCBjzAMBgNVHRMBAf8EAjAAMA4GA1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggr
+BgEFBQcDATAdBgNVHQ4EFgQUjvv22S3x9r8LUcaeQB5nNtm+pnAwHwYDVR0jBBgw
+FoAUZ2Al/jVrMA6ZiD3Qmquxy9SywLkwGgYDVR0RBBMwEYIJbG9jYWxob3N0hwR/
+AAABMAoGCCqGSM49BAMCA0gAMEUCID2fobXsxnpEzxmao17KpQIIRv/hTfg3vae2
+ux9QBx0PAiEAjvbUBjPsjbn7QikOeORv0N/ySjZRQEHSrjgUl4cma8Y=
+-----END CERTIFICATE-----
+subject=CN=localhost
+issuer=C=BY, O=Lab PKI, CN=Lab Intermediate CA
+---
+No client certificate CA names sent
+Peer Temp Key: X25519, 253 bits
+---
+SSL handshake has read 225 bytes and written 532 bytes
+Verification: OK
+---
+Reused, TLSv1.3, Cipher is TLS_AES_128_GCM_SHA256
+Protocol: TLSv1.3
+Server public key is 256 bit
+This TLS version forbids renegotiation.
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 0 (ok)
+---
+DONE
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 234
+  Inner Content Type = Handshake (22)
+    NewSessionTicket, Length=213
+        ticket_lifetime_hint=7200
+        ticket_age_add=3243750662
+        ticket_nonce (len=8): 0000000000000000
+        ticket (len=192): BF4F121E5E8A4BFC6277789F83C147EE3533F24968321C1CDF86D9D102B0E54B299AA7EBE416A6DBC9AF7003A343666813BB1A509B22487FB2F152BAB336F6BD9058589A0021BD5AADB6CBB9C4B01A8DC0F5B69FEB94290185A3F629F098D9248475596B5FBBAB4AC56D816FC52EA1CDEBA862689D51B4C376F453B50B07856A00B38E802F719525A77937AD059D55C215FEFFD5CF9A163876B85CB78F454EAF163E5CD1A7711470BA10CE365EB4352EB1E7668409DAE4D17E58FC105606CB62
+        No extensions
+
+---
+Post-Handshake New Session Ticket arrived:
+SSL-Session:
+    Protocol  : TLSv1.3
+    Cipher    : TLS_AES_128_GCM_SHA256
+    Session-ID: C0CFEC2A610A2B5D06E810213D0B69C08CF3D2F411674EC770FAA8798E9A760C
+    Session-ID-ctx: 
+    Resumption PSK: 7EA9343EDCD9AC607B10B761CEF90C7DEFD06D8FA85BBD720283118956A061AF
+    PSK identity: None
+    PSK identity hint: None
+    SRP username: None
+    TLS session ticket lifetime hint: 7200 (seconds)
+    TLS session ticket:
+    0000 - bf 4f 12 1e 5e 8a 4b fc-62 77 78 9f 83 c1 47 ee   .O..^.K.bwx...G.
+    0010 - 35 33 f2 49 68 32 1c 1c-df 86 d9 d1 02 b0 e5 4b   53.Ih2.........K
+    0020 - 29 9a a7 eb e4 16 a6 db-c9 af 70 03 a3 43 66 68   ).........p..Cfh
+    0030 - 13 bb 1a 50 9b 22 48 7f-b2 f1 52 ba b3 36 f6 bd   ...P."H...R..6..
+    0040 - 90 58 58 9a 00 21 bd 5a-ad b6 cb b9 c4 b0 1a 8d   .XX..!.Z........
+    0050 - c0 f5 b6 9f eb 94 29 01-85 a3 f6 29 f0 98 d9 24   ......)....)...$
+    0060 - 84 75 59 6b 5f bb ab 4a-c5 6d 81 6f c5 2e a1 cd   .uYk_..J.m.o....
+    0070 - eb a8 62 68 9d 51 b4 c3-76 f4 53 b5 0b 07 85 6a   ..bh.Q..v.S....j
+    0080 - 00 b3 8e 80 2f 71 95 25-a7 79 37 ad 05 9d 55 c2   ..../q.%.y7...U.
+    0090 - 15 fe ff d5 cf 9a 16 38-76 b8 5c b7 8f 45 4e af   .......8v.\..EN.
+    00a0 - 16 3e 5c d1 a7 71 14 70-ba 10 ce 36 5e b4 35 2e   .>\..q.p...6^.5.
+    00b0 - b1 e7 66 84 09 da e4 d1-7e 58 fc 10 56 06 cb 62   ..f.....~X..V..b
+
+    Start Time: 1794322477
+    Timeout   : 7200 (sec)
+    Verify return code: 0 (ok)
+    Extended master secret: no
+    Max Early Data: 0
+---
+read R BLOCK
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 19
+  Inner Content Type = Alert (21)
+    Level=warning(1), description=close notify(0)
+
