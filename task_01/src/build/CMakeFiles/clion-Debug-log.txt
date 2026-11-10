@@ -1,0 +1,10 @@
+/opt/homebrew/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G "Unix Makefiles" -S /Users/gleb/Desktop/KMZI-2026-autumn/task_01/src -B /Users/gleb/Desktop/KMZI-2026-autumn/task_01/src/build
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /Users/gleb/Desktop/KMZI-2026-autumn/task_01/src/build
