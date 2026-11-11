@@ -1,0 +1,143 @@
+
+=== 0. Версии инструментов ===
+OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026)
+nginx version: nginx/1.28.3 (Ubuntu)
+curl 8.18.0 (x86_64-pc-linux-gnu) libcurl/8.18.0 OpenSSL/3.5.5 zlib/1.3.1 brotli/1.2.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.68.0 librtmp/2.3 mit-krb5/1.22.1 OpenLDAP/2.6.10
+TShark (Wireshark) 4.6.4.
+
+=== 1. Корневой CA (ECDSA P-384) ===
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:1
+            X509v3 Key Usage: critical
+                Certificate Sign, CRL Sign
+
+=== 2. Промежуточный CA (ECDSA P-384, pathlen:0) ===
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:0
+            X509v3 Key Usage: critical
+
+=== 3. База openssl ca ===
+
+=== 4. Серверный сертификат (ECDSA P-256) ===
+Using configuration from inter/ca.cnf
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+countryName           :PRINTABLE:'BY'
+organizationName      :ASN.1 12:'Lab PKI'
+commonName            :ASN.1 12:'localhost'
+Certificate is to be certified until Nov 11 14:11:17 2027 GMT (365 days)
+
+Write out database with 1 new entries
+Database updated
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Subject Key Identifier: 
+--
+            X509v3 Subject Alternative Name: 
+                DNS:localhost, IP Address:127.0.0.1
+    Signature Algorithm: ecdsa-with-SHA384
+
+=== 5. Проверка цепочки ===
+[+] полная цепочка (root + intermediate):
+server/server.crt: OK
+[+] без intermediate (ожидаемо ошибка):
+CN=localhost
+error 20 at 0 depth lookup: unable to get local issuer certificate
+error server/server.crt: verification failed
+
+=== 6. nginx: TLS 1.3, P-384, AES-256-GCM ===
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+=== 7. Позитивный тест curl ===
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / secp384r1 / id-ecPublicKey
+*   subject: CN=localhost
+*   issuer: C=BY; O=Lab PKI; CN=Lab Intermediate CA P384
+* using HTTP/1.x
+> GET / HTTP/1.1
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+< HTTP/1.1 200 OK
+tls13 ok variant6
+
+=== 8. НЕГАТИВНЫЕ тесты ===
+[neg 1] curl без --cacert (нет доверия корню):
+curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate (20)
+More details here: https://curl.se/docs/sslcerts.html
+[neg 2] curl с чужим корнем:
+curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate (20)
+More details here: https://curl.se/docs/sslcerts.html
+[neg 3] curl на 127.0.0.2 (имя вне SAN):
+curl: (60) SSL: no alternative certificate subject name matches target ipv4 address '127.0.0.2'
+More details here: https://curl.se/docs/sslcerts.html
+[neg 4] TLS 1.2 отвергается сервером:
+40F704FE88730000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../ssl/record/rec_layer_s3.c:918:SSL alert number 70
+Protocol: TLSv1.2
+    Protocol  : TLSv1.2
+
+=== 9. HelloRetryRequest: s_server P-384 vs клиент X25519 ===
+[+] s_client: -groups X25519:P-384 (сервер выберет P-384 через HRR)
+Protocol version: TLSv1.3
+Verification: OK
+
+=== 10. Захват рукопожатия и анализ tshark ===
+[+] метки в keys.log:
+#
+CLIENT_HANDSHAKE_TRAFFIC_SECRET
+CLIENT_TRAFFIC_SECRET_0
+EXPORTER_SECRET
+SERVER_HANDSHAKE_TRAFFIC_SECRET
+SERVER_TRAFFIC_SECRET_0
+[+] без журнала ключей (видны только ClientHello/ServerHello):
+4	22	1
+6	22,20	2
+8	20,22	1
+9	22	2
+10		
+11		
+12		
+14		
+16		
+[+] с журналом ключей (полный набор типов сообщений):
+4	1
+6	2
+8	1
+9	2,8,11,15,20
+10	20
+11	4
+12	4
+[+] подсчёт ClientHello/ServerHello (для варианта 6 должно быть 2 и 2):
+2
+2
+[+] HRR: поиск Hello Retry Request и Selected Group:
+    TLSv1.2 Record Layer: Handshake Protocol: Hello Retry Request
+        Handshake Protocol: Hello Retry Request
+                    Selected Group: secp384r1 (24)
+[+] шифр и группа key_share в ServerHello:
+0x1302	
+0x1302	24
+[+] SNI в ClientHello:
+localhost
+localhost
+[+] SAN сертификата сервера из захвата:
+                                    GeneralName: dNSName (2)
+                                        dNSName: localhost
+                                    GeneralName: iPAddress (7)
+                                        iPAddress: 127.0.0.1
+
+=== Готово ===
+Отчёт: /home/anton/lab4/report.txt
+pcap:   /home/anton/lab4/client/hrr.pcap
+keys:   /home/anton/lab4/client/keys.log
