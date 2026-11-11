@@ -1,0 +1,3 @@
+add_executable(test_ed25519 test_ed25519.cpp)
+target_link_libraries(test_ed25519 PRIVATE ed25519_core)
+add_test(NAME ed25519_tests COMMAND test_ed25519)

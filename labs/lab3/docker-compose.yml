@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: lab3_backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: lab3_frontend
+    command: ["deadbeef"]
+    depends_on: [backend]
+
+  tests:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    container_name: lab3_tests
