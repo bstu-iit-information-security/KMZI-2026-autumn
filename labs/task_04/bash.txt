@@ -1,0 +1,108 @@
+cd ~/lab4
+   40  sudo tcpdump -i lo -s 0 -w client/handshake.pcap 'tcp port 8443'
+   41  ls -lh ~/lab4/client/handshake.pcap
+   42  cd ~/lab4
+   43  curl -v --cacert root/root.crt https://localhost:8443/
+   44  mkdir -p ~/lab4/{root,inter,server,client}
+   45  cd ~/lab4
+   46  ls -la
+   47  cd ~/lab4
+   48  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-384 -out root/root.key
+   49  chmod 600 root/root.key
+   50  openssl req -new -x509 -key root/root.key -sha256 -days 3650   -subj '/C=BY/O=Lab PKI/CN=Lab Root CA'   -addext 'basicConstraints=critical,CA:TRUE,pathlen:1'   -addext 'keyUsage=critical,keyCertSign,cRLSign'   -addext 'subjectKeyIdentifier=hash'   -out root/root.crt
+   51  openssl x509 -in root/root.crt -noout -text
+   52  openssl verify -CAfile root/root.crt root/root.crt
+   53  cat > inter/inter.ext <<'EOF'
+   54  basicConstraints=critical,CA:TRUE,pathlen:0
+   55  keyUsage=critical,keyCertSign,cRLSign
+   56  subjectKeyIdentifier=hash
+   57  authorityKeyIdentifier=keyid:always
+   58  EOF
+   59  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-384 -out inter/inter.key
+   60  chmod 600 inter/inter.key
+   61  openssl req -new -key inter/inter.key   -subj '/C=BY/O=Lab PKI/CN=Lab Intermediate CA'   -out inter/inter.csr
+   62  openssl x509 -req -in inter/inter.csr   -CA root/root.crt   -CAkey root/root.key   -CAcreateserial   -sha256 -days 1825   -extfile inter/inter.ext   -out inter/inter.crt
+   63  openssl verify -CAfile root/root.crt inter/inter.crt
+   64  cd ~/lab4/inter
+   65  touch index.txt
+   66  echo 01 > crlnumber
+   67  echo 1000 > serial
+   68  cd ~/lab4
+   69  echo $HOME/lab4/inter
+   70  cat > inter/ca.cnf <<EOF
+   71  [ ca ]
+   72  default_ca = CA_default
+   73  [ CA_default ]
+   74  dir              = $HOME/lab4/inter
+   75  database         = \$dir/index.txt
+   76  new_certs_dir    = \$dir
+   77  serial           = \$dir/serial
+   78  crlnumber        = \$dir/crlnumber
+   79  certificate      = \$dir/inter.crt
+   80  private_key      = \$dir/inter.key
+   81  default_md       = sha256
+   82  default_days     = 365
+   83  default_crl_days = 30
+   84  unique_subject   = no
+   85  copy_extensions  = none
+   86  policy           = policy_any
+   87  [ policy_any ]
+   88  commonName       = supplied
+   89  EOF
+   90  ls -la inter/
+   91  openssl genpkey -algorithm EC   -pkeyopt ec_paramgen_curve:P-256   -out server/server.key
+   92  chmod 600 server/server.key
+   93  openssl req -new   -key server/server.key   -subj '/C=BY/O=Lab PKI/CN=lab.local'   -out server/server.csr
+   94  cat > server/server.ext <<'EOF'
+   95  basicConstraints=critical,CA:FALSE
+   96  keyUsage=critical,digitalSignature
+   97  extendedKeyUsage=serverAuth
+   98  subjectAltName=DNS:lab.local,DNS:localhost,IP:127.0.0.1
+   99  EOF
+  100  openssl ca -batch   -config inter/ca.cnf   -in server/server.csr   -out server/server.crt   -extfile server/server.ext
+  101  cat server/server.crt inter/inter.crt > server/fullchain.pem
+  102  openssl verify   -CAfile root/root.crt   -untrusted inter/inter.crt   -verify_hostname lab.local   server/server.crt
+  103  cat inter/index.txt
+  104  nginx -v
+  105  sudo apt update 
+  106  sudo apt install nginx-light
+  107  sudo nano /etc/nginx/conf.d/lab4.conf
+  108  sudo nginx -t
+  109  sudo systemctl restart nginx
+  110  sudo systemctl status nginx --no-pager
+  111  cd ~/lab4
+  112  curl -v --cacert root/root.crt https://localhost:8443/
+  113  sudo apt update
+  114  sudo apt install curl -y
+  115  curl -v --cacert root/root.crt https://localhost:8443/
+  116  curl -v --tls-max 1.2 --cacert root/root.crt https://localhost:8443/
+  117  curl -v https://localhost:8443/
+  118  curl -v --cacert root/root.crt https://127.0.0.2:8443/
+  119  openssl genpkey -algorithm EC   -pkeyopt ec_paramgen_curve:P-256   -out /tmp/other.key
+  120  openssl req -new -x509   -key /tmp/other.key   -subj '/CN=Other Root'   -days 1   -out /tmp/other.crt
+  121  curl -v --cacert /tmp/other.crt https://localhost:8443/
+  122  openssl genpkey -algorithm EC   -pkeyopt ec_paramgen_curve:P-256   -out server/revoked.key
+  123  chmod 600 server/revoked.key
+  124  openssl req -new   -key server/revoked.key   -subj '/C=BY/O=Lab PKI/CN=revoked.local'   -out server/revoked.csr
+  125  cat > server/revoked.ext <<'EOF'
+  126  basicConstraints=critical,CA:FALSE
+  127  keyUsage=critical,digitalSignature
+  128  extendedKeyUsage=serverAuth
+  129  subjectAltName=DNS:revoked.local
+  130  EOF
+  131  openssl ca -batch   -config inter/ca.cnf   -in server/revoked.csr   -out server/revoked.crt   -extfile server/revoked.ext
+  132  openssl ca   -config inter/ca.cnf   -revoke server/revoked.crt
+  133  openssl ca   -config inter/ca.cnf   -gencrl   -out inter/inter.crl
+  134  openssl verify   -CAfile root/root.crt   -untrusted inter/inter.crt   -CRLfile inter/inter.crl   -crl_check   server/revoked.crt
+  135  sudo apt install tcpdump -y
+  136  cd ~/lab4
+  137  SSLKEYLOGFILE="$HOME/lab4/client/keys.log" curl -v --cacert root/root.crt https://localhost:8443/
+  138  cd ~/lab4
+  139  sudo tcpdump -i lo -s 0 -w client/decrypted.pcap 'tcp port 8443'
+  140  ls -lh client/
+  141  cd ~/lab4
+  142  openssl x509 -in server/server.crt -noout -dates
+  143  openssl verify   -CAfile root/root.crt   -untrusted inter/inter.crt   -verify_hostname localhost   server/server.crt
+  144  openssl verify   -attime "$(date -d '+400 days' +%s)"   -CAfile root/root.crt   -untrusted inter/inter.crt   -verify_hostname localhost   server/server.crt
+  145  history
+
