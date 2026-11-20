@@ -1,0 +1,3 @@
+/private/tmp/claude-501/-Users-gleb-Desktop-KMZI-2026-autumn/0eef014e-cc3e-483b-b923-71fa8236e99b/scratchpad/l3/task_03 D/build/CMakeFiles/main.dir
+/private/tmp/claude-501/-Users-gleb-Desktop-KMZI-2026-autumn/0eef014e-cc3e-483b-b923-71fa8236e99b/scratchpad/l3/task_03 D/build/CMakeFiles/edit_cache.dir
+/private/tmp/claude-501/-Users-gleb-Desktop-KMZI-2026-autumn/0eef014e-cc3e-483b-b923-71fa8236e99b/scratchpad/l3/task_03 D/build/CMakeFiles/rebuild_cache.dir
