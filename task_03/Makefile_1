@@ -1,0 +1,9 @@
+CC = gcc
+CFLAGS = -O2 -Wall -Wextra -std=gnu11
+SRC = main.c bn.c ed.c ct.c sha512.c eddsa.c
+
+ed25519_lab: $(SRC) bn.h ed.h ct.h sha512.h eddsa.h
+	$(CC) $(CFLAGS) -o $@ $(SRC)
+
+clean:
+	rm -f ed25519_lab
