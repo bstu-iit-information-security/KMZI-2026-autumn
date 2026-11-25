@@ -1,0 +1,578 @@
+Connecting to 127.0.0.1
+CONNECTED(00000005)
+Sent TLS Record
+Header:
+  Version = TLS 1.0 (0x301)
+  Content Type = Handshake (22)
+  Length = 289
+    ClientHello, Length=285
+      client_version=0x303 (TLS 1.2)
+      Random:
+        gmt_unix_time=0x98A84325
+        random_bytes (len=28): EEB1DC51B0CBD570180AFDF1FB48EDE48916296DA9DE3E7004DF2DB9
+      session_id (len=32): A9C27BCB25177178A0CC25F67BDBC27680CF871762A9CA11E8BEDA64567C2A18
+      cipher_suites (len=2)
+        {0x13, 0x02} TLS_AES_256_GCM_SHA384
+      compression_methods (len=1)
+        No Compression (0x00)
+      extensions, length = 210
+        extension_type=server_name(0), length=14
+          0000 - 00 0c 00 00 09 6c 6f 63-61 6c 68 6f 73 74      .....localhost
+        extension_type=ec_point_formats(11), length=2
+          uncompressed (0)
+        extension_type=supported_groups(10), length=4
+          secp384r1 (P-384) (24)
+        extension_type=session_ticket(35), length=0
+        extension_type=encrypt_then_mac(22), length=0
+        extension_type=extended_master_secret(23), length=0
+        extension_type=signature_algorithms(13), length=42
+          mldsa65 (0x0905)
+          mldsa87 (0x0906)
+          mldsa44 (0x0904)
+          ecdsa_secp256r1_sha256 (0x0403)
+          ecdsa_secp384r1_sha384 (0x0503)
+          ecdsa_secp521r1_sha512 (0x0603)
+          ed25519 (0x0807)
+          ed448 (0x0808)
+          ecdsa_brainpoolP256r1tls13_sha256 (0x081a)
+          ecdsa_brainpoolP384r1tls13_sha384 (0x081b)
+          ecdsa_brainpoolP512r1tls13_sha512 (0x081c)
+          rsa_pss_pss_sha256 (0x0809)
+          rsa_pss_pss_sha384 (0x080a)
+          rsa_pss_pss_sha512 (0x080b)
+          rsa_pss_rsae_sha256 (0x0804)
+          rsa_pss_rsae_sha384 (0x0805)
+          rsa_pss_rsae_sha512 (0x0806)
+          rsa_pkcs1_sha256 (0x0401)
+          rsa_pkcs1_sha384 (0x0501)
+          rsa_pkcs1_sha512 (0x0601)
+        extension_type=supported_versions(43), length=3
+          TLS 1.3 (772)
+        extension_type=psk_key_exchange_modes(45), length=2
+          psk_dhe_ke (1)
+        extension_type=key_share(51), length=103
+            NamedGroup: secp384r1 (P-384) (24)
+            key_exchange:  (len=97): 04C6A7091AA273F5708E98AE87CF315BDE1F60BFD357B7BE50D8BD4F86ACDE3408968134AEDE27F1C2AB4E6528E58B7B4CC561C159AEB5315AD62D04CA2D07598A8F0DC9BB5C9DFC76240FA90446A70151E68C4057B9AF92F0D2B8DCD9C1B486A4
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = Handshake (22)
+  Length = 187
+    ServerHello, Length=183
+      server_version=0x303 (TLS 1.2)
+      Random:
+        gmt_unix_time=0xB68BCAEB
+        random_bytes (len=28): D9016FE1F6D83783FABE7F6C2EC2E173F9511DB4010493A5FF111189
+      session_id (len=32): A9C27BCB25177178A0CC25F67BDBC27680CF871762A9CA11E8BEDA64567C2A18
+      cipher_suite {0x13, 0x02} TLS_AES_256_GCM_SHA384
+      compression_method: No Compression (0x00)
+      extensions, length = 111
+        extension_type=supported_versions(43), length=2
+            TLS 1.3 (772)
+        extension_type=key_share(51), length=101
+            NamedGroup: secp384r1 (P-384) (24)
+            key_exchange:  (len=97): 04031FF459A32D9A11ECD27376C7B20F9BB1EC4F6404DFB333FE3DFEE2AF3F753BE200F335B7E439A1D1428478E3BA0FFCCCCA3CD7A2AAC5C14442441A853C9D0DB88CFA213B05997C5F11710CB3D7D124158A7CFBF882308F9218FFFEC8E2C672
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ChangeCipherSpec (20)
+  Length = 1
+    change_cipher_spec (1)
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 23
+  Inner Content Type = Handshake (22)
+    EncryptedExtensions, Length=2
+      No extensions
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 198
+  Inner Content Type = Handshake (22)
+    CertificateRequest, Length=177
+      request_context (len=0): 
+      extensions, length = 174
+        extension_type=signature_algorithms(13), length=42
+          mldsa65 (0x0905)
+          mldsa87 (0x0906)
+          mldsa44 (0x0904)
+          ecdsa_secp256r1_sha256 (0x0403)
+          ecdsa_secp384r1_sha384 (0x0503)
+          ecdsa_secp521r1_sha512 (0x0603)
+          ed25519 (0x0807)
+          ed448 (0x0808)
+          ecdsa_brainpoolP256r1tls13_sha256 (0x081a)
+          ecdsa_brainpoolP384r1tls13_sha384 (0x081b)
+          ecdsa_brainpoolP512r1tls13_sha512 (0x081c)
+          rsa_pss_pss_sha256 (0x0809)
+          rsa_pss_pss_sha384 (0x080a)
+          rsa_pss_pss_sha512 (0x080b)
+          rsa_pss_rsae_sha256 (0x0804)
+          rsa_pss_rsae_sha384 (0x0805)
+          rsa_pss_rsae_sha512 (0x0806)
+          rsa_pkcs1_sha256 (0x0401)
+          rsa_pkcs1_sha384 (0x0501)
+          rsa_pkcs1_sha512 (0x0601)
+        extension_type=certificate_authorities(47), length=124
+          0000 - 00 7a 00 37 30 35 31 0b-30 09 06 03 55 04 06   .z.7051.0...U..
+          000f - 13 02 42 59 31 10 30 0e-06 03 55 04 0a 0c 07   ..BY1.0...U....
+          001e - 4c 61 62 20 50 4b 49 31-14 30 12 06 03 55 04   Lab PKI1.0...U.
+          002d - 03 0c 0b 4c 61 62 20 52-6f 6f 74 20 43 41 00   ...Lab Root CA.
+          003c - 3f 30 3d 31 0b 30 09 06-03 55 04 06 13 02 42   ?0=1.0...U....B
+          004b - 59 31 10 30 0e 06 03 55-04 0a 0c 07 4c 61 62   Y1.0...U....Lab
+          005a - 20 50 4b 49 31 1c 30 1a-06 03 55 04 03 0c 13    PKI1.0...U....
+          0069 - 4c 61 62 20 49 6e 74 65-72 6d 65 64 69 61 74   Lab Intermediat
+          0078 - 65 20 43 41                                    e CA
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 933
+  Inner Content Type = Handshake (22)
+    Certificate, Length=912
+      context (len=0): 
+      certificate_list, length=908
+        ASN.1Cert, length=484
+------details-----
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 4096 (0x1000)
+        Signature Algorithm: ED25519
+        Issuer: C = BY, O = Lab PKI, CN = Lab Intermediate CA
+        Validity
+            Not Before: Nov 10 14:57:11 2026 GMT
+            Not After : Nov 10 14:57:11 2027 GMT
+        Subject: CN = localhost
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (384 bit)
+                pub:
+                    04:23:4f:3b:e5:24:d2:8b:80:95:3c:d8:4d:38:bc:
+                    e4:e2:3f:bf:99:73:60:96:3a:97:57:76:60:ad:df:
+                    59:8d:16:43:29:eb:90:2e:c5:94:f6:a5:e4:35:fe:
+                    e2:6c:62:d3:58:c7:f6:4a:49:8c:62:ea:15:42:85:
+                    e8:c0:c6:65:ca:1c:6d:26:0a:a9:1f:bd:2a:01:b9:
+                    37:db:f2:57:10:2f:2f:01:4a:53:ed:a9:ba:ec:d4:
+                    cf:a9:98:79:ae:5a:18
+                ASN1 OID: secp384r1
+                NIST CURVE: P-384
+        X509v3 extensions:
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Subject Key Identifier: 
+                B1:73:E8:BC:98:F6:E0:41:04:5D:F7:79:1E:88:03:0F:7A:E2:9C:63
+            X509v3 Authority Key Identifier: 
+                21:68:77:35:0B:09:1B:14:9E:4D:16:CB:69:D0:08:9E:23:4D:DE:6E
+            X509v3 Subject Alternative Name: 
+                DNS:localhost, IP Address:127.0.0.1
+    Signature Algorithm: ED25519
+    Signature Value:
+        3e:ed:7c:d5:d9:e9:75:b9:d7:2a:b0:78:e6:fb:c0:f2:36:78:
+        1b:50:5a:5f:35:31:74:7b:90:17:96:80:ef:66:99:5e:8c:13:
+        de:21:9a:a5:7b:70:25:29:1d:f2:6c:a0:a2:69:aa:88:44:0f:
+        9d:28:2e:4e:42:99:97:39:7a:06
+-----BEGIN CERTIFICATE-----
+MIIB4DCCAZKgAwIBAgICEAAwBQYDK2VwMD0xCzAJBgNVBAYTAkJZMRAwDgYDVQQK
+DAdMYWIgUEtJMRwwGgYDVQQDDBNMYWIgSW50ZXJtZWRpYXRlIENBMB4XDTI2MTEx
+MDE0NTcxMVoXDTI3MTExMDE0NTcxMVowFDESMBAGA1UEAwwJbG9jYWxob3N0MHYw
+EAYHKoZIzj0CAQYFK4EEACIDYgAEI0875STSi4CVPNhNOLzk4j+/mXNgljqXV3Zg
+rd9ZjRZDKeuQLsWU9qXkNf7ibGLTWMf2SkmMYuoVQoXowMZlyhxtJgqpH70qAbk3
+2/JXEC8vAUpT7am67NTPqZh5rloYo4GSMIGPMAwGA1UdEwEB/wQCMAAwDgYDVR0P
+AQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMBMB0GA1UdDgQWBBSxc+i8mPbg
+QQRd93keiAMPeuKcYzAfBgNVHSMEGDAWgBQhaHc1CwkbFJ5NFstp0AieI03ebjAa
+BgNVHREEEzARgglsb2NhbGhvc3SHBH8AAAEwBQYDK2depth=2 C=BY, O=Lab PKI, CN=Lab Root CA
+verify return:1
+depth=1 C=BY, O=Lab PKI, CN=Lab Intermediate CA
+verify return:1
+depth=0 CN=localhost
+verify return:1
+VwA0EAPu181dnpdbnXKrB4
+5vvA8jZ4G1BaXzUxdHuQF5aA72aZXowT3iGapXtwJSkd8mygommqiEQPnSguTkKZ
+lzl6Bg==
+-----END CERTIFICATE-----
+------------------
+        No extensions
+        ASN.1Cert, length=414
+------details-----
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            02:a4:9c:06:09:77:0e:61:9a:2b:3e:55:49:da:3c:9a:d8:9b:26:a9
+        Signature Algorithm: ED25519
+        Issuer: C = BY, O = Lab PKI, CN = Lab Root CA
+        Validity
+            Not Before: Nov 10 14:57:11 2026 GMT
+            Not After : Nov  9 14:57:11 2031 GMT
+        Subject: C = BY, O = Lab PKI, CN = Lab Intermediate CA
+        Subject Public Key Info:
+            Public Key Algorithm: ED25519
+                ED25519 Public-Key:
+                pub:
+                    e1:dd:4c:85:66:4b:ee:af:26:79:c6:f7:15:27:f6:
+                    f2:e5:02:dd:a8:fc:a2:2d:41:0e:42:90:1e:ea:12:
+                    7c:ff
+        X509v3 extensions:
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:0
+            X509v3 Key Usage: critical
+                Certificate Sign, CRL Sign
+            X509v3 Subject Key Identifier: 
+                21:68:77:35:0B:09:1B:14:9E:4D:16:CB:69:D0:08:9E:23:4D:DE:6E
+            X509v3 Authority Key Identifier: 
+                0C:A9:8E:D2:D8:1B:0F:A2:58:D6:18:A6:39:69:93:C3:22:F7:50:F9
+    Signature Algorithm: ED25519
+    Signature Value:
+        79:b6:1e:37:d5:0c:9f:19:ca:66:cc:e5:ae:8b:01:d8:82:58:
+        1c:26:bc:76:0a:f7:f7:8c:4d:c7:7d:cf:e7:3a:b3:fd:5c:82:
+        c8:a5:13:33:cb:56:c8:0a:5c:41:d9:f1:e3:66:3f:9e:3c:4c:
+        a5:e2:6d:cc:83:23:68:7c:85:08
+-----BEGIN CERTIFICATE-----
+MIIBmjCCAUygAwIBAgIUAqScBgl3DmGaKz5VSdo8mtibJqkwBQYDK2VwMDUxCzAJ
+BgNVBAYTAkJZMRAwDgYDVQQKDAdMYWIgUEtJMRQwEgYDVQQDDAtMYWIgUm9vdCBD
+QTAeFw0yNjExMTAxNDU3MTFaFw0zMTExMDkxNDU3MTFaMD0xCzAJBgNVBAYTAkJZ
+MRAwDgYDVQQKDAdMYWIgUEtJMRwwGgYDVQQDDBNMYWIgSW50ZXJtZWRpYXRlIENB
+MCowBQYDK2VwAyEA4d1MhWZL7q8mecb3FSf28uUC3aj8oi1BDkKQHuoSfP+jZjBk
+MBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgEGMB0GA1UdDgQWBBQh
+aHc1CwkbFJ5NFstp0AieI03ebjAfBgNVHSMEGDAWgBQMqY7S2BsPoljWGKY5aZPD
+IvdQ+TAFBgMrZXADQQB5th431QyfGcpmzOWuiwHYglgcJrx2Cvf3jE3Hfc/nOrP9
+XILIpRMzy1bIClxB2fHjZj+ePEyl4m3MgyNofIUI
+-----END CERTIFICATE-----
+------------------
+        No extensions
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 127
+  Inner Content Type = Handshake (22)
+    CertificateVerify, Length=106
+      Signature Algorithm: ecdsa_secp384r1_sha384 (0x0503)
+      Signature (len=102): 30640230150D3729C3ADE5A8DD03BAEC6552310A89F0CC7B20EA8AF0F6B99318C4E8DBA52999F568299D6F62112BA645669E3CD902305DB945862C554E7E02368438B61A94135F29CAA3633C2C3E74915219D0E20DAF31FD29230E509EB3723801CE7AA961DC
+
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 69
+  Inner Content Type = Handshake (22)
+    Finished, Length=48
+      verify_data (len=48): 513C1DF44AD494B18202D1E3FE83029A0F8D81C7CDB2D4B13D8182B796D864B7D4CECB83E93F6851C07EF67210DBA76C
+
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ChangeCipherSpec (20)
+  Length = 1
+    change_cipher_spec (1)
+
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 485
+  Inner Content Type = Handshake (22)
+    Certificate, Length=464
+      context (len=0): 
+      certificate_list, length=460
+        ASN.1Cert, length=455
+------details-----
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 4097 (0x1001)
+        Signature Algorithm: ED25519
+        Issuer: C = BY, O = Lab PKI, CN = Lab Intermediate CA
+        Validity
+            Not Before: Nov 10 14:57:11 2026 GMT
+            Not After : Nov 10 14:57:11 2027 GMT
+        Subject: CN = lab-client
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (384 bit)
+                pub:
+                    04:47:f9:c4:b1:78:16:63:a2:41:57:91:34:d3:58:
+                    9d:d4:5b:0d:d1:76:c5:d2:43:18:d9:9d:45:7a:23:
+                    1f:ca:1a:80:02:aa:a4:1b:ba:b0:a5:a4:c5:13:46:
+                    6a:97:fc:d7:17:77:fa:e3:29:76:23:a1:47:3f:dd:
+                    a9:9e:47:e5:42:69:77:2b:fe:5f:97:d1:6e:53:d4:
+                    a3:47:f3:0c:25:2e:9b:df:d0:5e:5e:a0:19:8d:ac:
+                    13:26:85:57:41:78:af
+                ASN1 OID: secp384r1
+                NIST CURVE: P-384
+        X509v3 extensions:
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication
+            X509v3 Subject Key Identifier: 
+                E4:BE:0A:F9:13:59:34:22:7E:4B:D0:DD:CF:6B:DA:6C:1A:A6:BC:88
+            X509v3 Authority Key Identifier: 
+                21:68:77:35:0B:09:1B:14:9E:4D:16:CB:69:D0:08:9E:23:4D:DE:6E
+    Signature Algorithm: ED25519
+    Signature Value:
+        6b:8b:ca:b9:f4:b2:b2:cb:fc:2c:1a:a0:eb:9f:b5:e4:86:55:
+        9d:79:02:3c:fc:af:51:98:ac:c0:db:28:36:c2:1a:6e:76:63:
+        5c:d6:02:49:75:d9:dd:80:8d:5e:75:a7:72:71:bb:0d:33:6a:
+        a6:44:2c:21:8e:f3:38:d6:0c:09
+-----BEGIN CERTIFICATE-----
+MIIBwzCCAXWgAwIBAgICEAEwBQYDK2VwMD0xCzAJBgNVBAYTAkJZMRAwDgYDVQQK
+DAdMYWIgUEtJMRwwGgYDVQQDDBNMYWIgSW50ZXJtZWRpYXRlIENBMB4XDTI2MTEx
+MDE0NTcxMVoXDTI3MTExMDE0NTcxMVowFTETMBEGA1UEAwwKbGFiLWNsaWVudDB2
+MBAGByqGSM49AgEGBSuBBAAiA2IABEf5xLF4FmOiQVeRNNNYndRbDdF2xdJDGNmd
+RXojH8oagAKqpBu6sKWkxRNGapf81xd3+uMpdiOhRz/dqZ5H5UJpdyv+X5fRblPU
+o0fzDCUum9/QXl6gGY2sEyaFV0F4r6N1MHMwDAYDVR0TAQH/BAIwADAOBgNVHQ8B
+Af8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwIwHQYDVR0OBBYEFOS+CvkTWTQi
+fkvQ3c9r2mwapryIMB8GA1UdIwQYMBaAFCFodzULCRsUnk0Wy2nQCJ4jTd5uMAUG
+AytlcANBAGuLyrn0srLL/CwaoOufteSGVZ15Ajz8r1GYrMDbKDbCGm52Y1zWAkl1
+2d2AjV51p3Jxuw0zaqZELCGO8zjWDAk=
+-----END CERTIFICATE-----
+------------------
+        No extensions
+
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 127
+  Inner Content Type = Handshake (22)
+    CertificateVerify, Length=106
+      Signature Algorithm: ecdsa_secp384r1_sha384 (0x0503)
+      Signature (len=102): 3064023017A9EADD52D96FE73EFB2B5224D12130D54111371D42F9A2A20F8F434D6DD07E58FAFB20B2C0FD91837354C9645FA8EB0230252548FFDB6047C6251B69C511B5F699C04CC35D5B2A6CB049728BA759191D0A913F8E786F08FCE03361B4000104E3DF
+
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 69
+  Inner Content Type = Handshake (22)
+    Finished, Length=48
+      verify_data (len=48): CE122D88C12B8A167583DCCCC9FD21B40E7F6B8DB0CA96444B5C9F04D053E1F9AA36553E288A9FBB301225A935076BDA
+
+---
+Certificate chain
+ 0 s:CN=localhost
+   i:C=BY, O=Lab PKI, CN=Lab Intermediate CA
+   a:PKEY: EC, (secp384r1); sigalg: ED25519
+   v:NotBefore: Nov 10 14:57:11 2026 GMT; NotAfter: Nov 10 14:57:11 2027 GMT
+ 1 s:C=BY, O=Lab PKI, CN=Lab Intermediate CA
+   i:C=BY, O=Lab PKI, CN=Lab Root CA
+   a:PKEY: ED25519, 256 (bit); sigalg: ED25519
+   v:NotBefore: Nov 10 14:57:11 2026 GMT; NotAfter: Nov  9 14:57:11 2031 GMT
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIB4DCCAZKgAwIBAgICEAAwBQYDK2VwMD0xCzAJBgNVBAYTAkJZMRAwDgYDVQQK
+DAdMYWIgUEtJMRwwGgYDVQQDDBNMYWIgSW50ZXJtZWRpYXRlIENBMB4XDTI2MTEx
+MDE0NTcxMVoXDTI3MTExMDE0NTcxMVowFDESMBAGA1UEAwwJbG9jYWxob3N0MHYw
+EAYHKoZIzj0CAQYFK4EEACIDYgAEI0875STSi4CVPNhNOLzk4j+/mXNgljqXV3Zg
+rd9ZjRZDKeuQLsWU9qXkNf7ibGLTWMf2SkmMYuoVQoXowMZlyhxtJgqpH70qAbk3
+2/JXEC8vAUpT7am67NTPqZh5rloYo4GSMIGPMAwGA1UdEwEB/wQCMAAwDgYDVR0P
+AQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMBMB0GA1UdDgQWBBSxc+i8mPbg
+QQRd93keiAMPeuKcYzAfBgNVHSMEGDAWgBQhaHc1CwkbFJ5NFstp0AieI03ebjAa
+BgNVHREEEzARgglsb2NhbGhvc3SHBH8AAAEwBQYDK2VwA0EAPu181dnpdbnXKrB4
+5vvA8jZ4G1BaXzUxdHuQF5aA72aZXowT3iGapXtwJSkd8mygommqiEQPnSguTkKZ
+lzl6Bg==
+-----END CERTIFICATE-----
+subject=CN=localhost
+issuer=C=BY, O=Lab PKI, CN=Lab Intermediate CA
+---
+Acceptable client certificate CA names
+C=BY, O=Lab PKI, CN=Lab Root CA
+C=BY, O=Lab PKI, CN=Lab Intermediate CA
+Requested Signature Algorithms: id-ml-dsa-65:id-ml-dsa-87:id-ml-dsa-44:ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:ed25519:ed448:ecdsa_brainpoolP256r1_sha256:ecdsa_brainpoolP384r1_sha384:ecdsa_brainpoolP512r1_sha512:rsa_pss_pss_sha256:rsa_pss_pss_sha384:rsa_pss_pss_sha512:RSA-PSS+SHA256:RSA-PSS+SHA384:RSA-PSS+SHA512:RSA+SHA256:RSA+SHA384:RSA+SHA512
+Shared Requested Signature Algorithms: id-ml-dsa-65:id-ml-dsa-87:id-ml-dsa-44:ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:ed25519:ed448:ecdsa_brainpoolP256r1_sha256:ecdsa_brainpoolP384r1_sha384:ecdsa_brainpoolP512r1_sha512:rsa_pss_pss_sha256:rsa_pss_pss_sha384:rsa_pss_pss_sha512:RSA-PSS+SHA256:RSA-PSS+SHA384:RSA-PSS+SHA512:RSA+SHA256:RSA+SHA384:RSA+SHA512
+Peer signing digest: SHA384
+Peer signature type: ecdsa_secp384r1_sha384
+Peer Temp Key: ECDH, secp384r1, 384 bits
+---
+SSL handshake has read 1573 bytes and written 996 bytes
+Verification: OK
+---
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Protocol: TLSv1.3
+Server public key is 384 bit
+This TLS version forbids renegotiation.
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 0 (ok)
+---
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 714
+  Inner Content Type = Handshake (22)
+    NewSessionTicket, Length=693
+        ticket_lifetime_hint=7200
+        ticket_age_add=3259654761
+        ticket_nonce (len=8): 0000000000000000
+        ticket (len=672): 51248FD0128818F6DCC811355816356837357093A40D196EBE88DC1991C610F0D0F98D7E572074D00F319E74AC94E7BD6FA72D7334192297A5630F0BE973074428438327494EBD3AADB2C93890CB590F86746F57C6AB82305612F9E8E90ED31FA1BCA0C9D2EA40425F2EEC421284460A29FDA05688DE3CCF0F03CD92EC93F0260DDC5F055F22FA07AEA97B41F733A0C4FD4F0E10A0FFA903D459B882323807019AACEEC9D41951596C57BF729CC3688AA4ED4EC497BC1D5B303608B0266EB9D6CCBA4E59E4CA5525A66FDDECDA5BB4CCA6E1F3CB7DF212E2933B89722A2D825D68312FD5A4BB159210E16BAB10A1254B42D0E240B7A5FACBA66C55630883F92BC65424A80AA5D3D7288A92CA7016E3C3495D145F693CD4FEED9B6BEDBEE4B8A0FB361F67BA26ADC048706DEFA70418AEF3296A2C29F39D3280D43116B5B0832A963D253FC2D4AFE9AFECCEA2AF1770D41E7850C4E45C891114AEF6C1EBF688651671C9316E3C46FA19E46BE8B1C9FF99CE29690834A8A6F6E0E51CDE13C4CB57DD1E6A70A581AD73E4F547ED14E4621667DEB53DD82C386DAEBAD2939489AB53068C26A28A41200B4679E950F1A97615F0E953A130386733A4E542F9A8F9D91033E8F3525AC038714C07BC300D9CC9900BF40CAD8C939E78A47B42BC0CF4FF211C395F3D5170632023C217542212067387FF8F894CB658EF0D7E8451E219AE2451195D1A374B256A558BFD12438B2B828A57A97DD110F0CAD99928CADDF9767175708925006EEF670E5B7FC14E1CC6AB1B3131EB62C4B3F940C5649B1A57930DF151A194128A2AD432FDA6725B4BC4209A1856C358521AB7AED775DBD8E42F9F9743651019A4D7339062CBCFD4580DC774A4642F641B67FC173FCA69F178AAB4A7C4F9F250CF42D334933C0DC737DCC985D589A08B9EBFFC44F2C2245C750C86
+        No extensions
+
+---
+Post-Handshake New Session Ticket arrived:
+SSL-Session:
+    Protocol  : TLSv1.3
+    Cipher    : TLS_AES_256_GCM_SHA384
+    Session-ID: 6468CCF9ED7F1B456B268F17453A84FCA41A2351AC434F331D91172102545B9E
+    Session-ID-ctx: 
+    Resumption PSK: 2B3F3541D429D5C998B83FED2210A2D5A5BB7265A51D0D4D8AC5B66389C80229BC5CEDDEE614C9AF7F48F479F221F465
+    PSK identity: None
+    PSK identity hint: None
+    SRP username: None
+    TLS session ticket lifetime hint: 7200 (seconds)
+    TLS session ticket:
+    0000 - 51 24 8f d0 12 88 18 f6-dc c8 11 35 58 16 35 68   Q$.........5X.5h
+    0010 - 37 35 70 93 a4 0d 19 6e-be 88 dc 19 91 c6 10 f0   75p....n........
+    0020 - d0 f9 8d 7e 57 20 74 d0-0f 31 9e 74 ac 94 e7 bd   ...~W t..1.t....
+    0030 - 6f a7 2d 73 34 19 22 97-a5 63 0f 0b e9 73 07 44   o.-s4."..c...s.D
+    0040 - 28 43 83 27 49 4e bd 3a-ad b2 c9 38 90 cb 59 0f   (C.'IN.:...8..Y.
+    0050 - 86 74 6f 57 c6 ab 82 30-56 12 f9 e8 e9 0e d3 1f   .toW...0V.......
+    0060 - a1 bc a0 c9 d2 ea 40 42-5f 2e ec 42 12 84 46 0a   ......@B_..B..F.
+    0070 - 29 fd a0 56 88 de 3c cf-0f 03 cd 92 ec 93 f0 26   )..V..<........&
+    0080 - 0d dc 5f 05 5f 22 fa 07-ae a9 7b 41 f7 33 a0 c4   .._._"....{A.3..
+    0090 - fd 4f 0e 10 a0 ff a9 03-d4 59 b8 82 32 38 07 01   .O.......Y..28..
+    00a0 - 9a ac ee c9 d4 19 51 59-6c 57 bf 72 9c c3 68 8a   ......QYlW.r..h.
+    00b0 - a4 ed 4e c4 97 bc 1d 5b-30 36 08 b0 26 6e b9 d6   ..N....[06..&n..
+    00c0 - cc ba 4e 59 e4 ca 55 25-a6 6f dd ec da 5b b4 cc   ..NY..U%.o...[..
+    00d0 - a6 e1 f3 cb 7d f2 12 e2-93 3b 89 72 2a 2d 82 5d   ....}....;.r*-.]
+    00e0 - 68 31 2f d5 a4 bb 15 92-10 e1 6b ab 10 a1 25 4b   h1/.......k...%K
+    00f0 - 42 d0 e2 40 b7 a5 fa cb-a6 6c 55 63 08 83 f9 2b   B..@.....lUc...+
+    0100 - c6 54 24 a8 0a a5 d3 d7-28 8a 92 ca 70 16 e3 c3   .T$.....(...p...
+    0110 - 49 5d 14 5f 69 3c d4 fe-ed 9b 6b ed be e4 b8 a0   I]._i<....k.....
+    0120 - fb 36 1f 67 ba 26 ad c0-48 70 6d ef a7 04 18 ae   .6.g.&..Hpm.....
+    0130 - f3 29 6a 2c 29 f3 9d 32-80 d4 31 16 b5 b0 83 2a   .)j,)..2..1....*
+    0140 - 96 3d 25 3f c2 d4 af e9-af ec ce a2 af 17 70 d4   .=%?..........p.
+    0150 - 1e 78 50 c4 e4 5c 89 11-14 ae f6 c1 eb f6 88 65   .xP..\.........e
+    0160 - 16 71 c9 31 6e 3c 46 fa-19 e4 6b e8 b1 c9 ff 99   .q.1n<F...k.....
+    0170 - ce 29 69 08 34 a8 a6 f6-e0 e5 1c de 13 c4 cb 57   .)i.4..........W
+    0180 - dd 1e 6a 70 a5 81 ad 73-e4 f5 47 ed 14 e4 62 16   ..jp...s..G...b.
+    0190 - 67 de b5 3d d8 2c 38 6d-ae ba d2 93 94 89 ab 53   g..=.,8m.......S
+    01a0 - 06 8c 26 a2 8a 41 20 0b-46 79 e9 50 f1 a9 76 15   ..&..A .Fy.P..v.
+    01b0 - f0 e9 53 a1 30 38 67 33-a4 e5 42 f9 a8 f9 d9 10   ..S.08g3..B.....
+    01c0 - 33 e8 f3 52 5a c0 38 71-4c 07 bc 30 0d 9c c9 90   3..RZ.8qL..0....
+    01d0 - 0b f4 0c ad 8c 93 9e 78-a4 7b 42 bc 0c f4 ff 21   .......x.{B....!
+    01e0 - 1c 39 5f 3d 51 70 63 20-23 c2 17 54 22 12 06 73   .9_=Qpc #..T"..s
+    01f0 - 87 ff 8f 89 4c b6 58 ef-0d 7e 84 51 e2 19 ae 24   ....L.X..~.Q...$
+    0200 - 51 19 5d 1a 37 4b 25 6a-55 8b fd 12 43 8b 2b 82   Q.].7K%jU...C.+.
+    0210 - 8a 57 a9 7d d1 10 f0 ca-d9 99 28 ca dd f9 76 71   .W.}......(...vq
+    0220 - 75 70 89 25 00 6e ef 67-0e 5b 7f c1 4e 1c c6 ab   up.%.n.g.[..N...
+    0230 - 1b 31 31 eb 62 c4 b3 f9-40 c5 64 9b 1a 57 93 0d   .11.b...@.d..W..
+    0240 - f1 51 a1 94 12 8a 2a d4-32 fd a6 72 5b 4b c4 20   .Q....*.2..r[K. 
+    0250 - 9a 18 56 c3 58 52 1a b7-ae d7 75 db d8 e4 2f 9f   ..V.XR....u.../.
+    0260 - 97 43 65 10 19 a4 d7 33-90 62 cb cf d4 58 0d c7   .Ce....3.b...X..
+    0270 - 74 a4 64 2f 64 1b 67 fc-17 3f ca 69 f1 78 aa b4   t.d/d.g..?.i.x..
+    0280 - a7 c4 f9 f2 50 cf 42 d3-34 93 3c 0d c7 37 dc c9   ....P.B.4.<..7..
+    0290 - 85 d5 89 a0 8b 9e bf fc-44 f2 c2 24 5c 75 0c 86   ........D..$\u..
+
+    Start Time: 1794322662
+    Timeout   : 7200 (sec)
+    Verify return code: 0 (ok)
+    Extended master secret: no
+    Max Early Data: 0
+---
+read R BLOCK
+Received TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 714
+  Inner Content Type = Handshake (22)
+    NewSessionTicket, Length=693
+        ticket_lifetime_hint=7200
+        ticket_age_add=2539912366
+        ticket_nonce (len=8): 0000000000000001
+        ticket (len=672): 51248FD0128818F6DCC8113558163568D8BF29F482F3D2455BA259CEAB665BECDA5F3A9EF4F00FD37DFD1047910A663E33E82E602E34405206089B4E57BF345CFD340229E011A47A1A85EA61B911B4A9CA5F16CECB1E39E336CB28CB45BF1E03D4831E04E7009E878908C948FA462CBEC029E628B20D10A9762474B11359F5E536987238FA4B7839FDBB4FAF0419672B7EFE250A8228FBCD3455332734B5599943AB7FA82866E3F8755ED04419EFF4038F0B83D8522579890000B2B2B7A6467FBAAE6FE1FEBCD5B1E35681B236A69A7E89A975500D478EC7900F9249A10B0C469F30FE3504CA860147A359F545017DCB4125BF3D03D3895C495F5895EC03D4E0DB387DE3008F4016DC010E2F9DB58C01AF88FDFD1FA7E52FC849DB59D450EDC361B279A0A8309FFBBE72AF6B11972AB7771A74D05C07556FAB9B0F3243A5895E6174E0CCF4984C2CFD809C52D9BFE7A7188ED1B442559FB249181EF4FA971DECB294EA8E44CACC96F75025006DFA37B4EB7A2D540D66065BA4FBD9D058DEFA7DB2D686D1A9FF5B766A7219998E239E0AA0663F51347CB1A2ACFFB94790B74E89D99402ED4590FFAA02EDEBB5C66368813FDE347E077C4E91D5945743E2ABE889A69BAC330497CE69254FED0ACA9C02B66AECC18B78DBEB76162FCE86F3DE0968677A064A1B17932D78129468ABE62561B2361163EB2EDCE5ED40B4D86D228E48BD5C9B85713E1D67DB70969DB9471903C9ECAE8E57216C005C3C939E9AF388587A2BB4459676B0BF74034E29B6DDFEA7F7A4FE89800AB9AFBB84723287D8A016467962BF287601F8A007AD96BE4163727C9E5D91B3925C656B2529160A22E5CFD4BB3053300614F4BEF16956EE97E7494BEEC6424A8FAADB722CC52DEADBE719D387934AB271672DD3268F848F94604ABBE2F445B4FD9C593C55B5B2361D6796
+        No extensions
+
+---
+Post-Handshake New Session Ticket arrived:
+SSL-Session:
+    Protocol  : TLSv1.3
+    Cipher    : TLS_AES_256_GCM_SHA384
+    Session-ID: 3FC4DE091E9C8A2F08F3959724AAA620113E7960018E1C064ADDF168BFB6DC30
+    Session-ID-ctx: 
+    Resumption PSK: 38C54F85BB8621F59001B288899DE4E8E3DD0ED11494BFB729B16112FD4E78B8640AF91A30F95C1954D5A24CB0861429
+    PSK identity: None
+    PSK identity hint: None
+    SRP username: None
+    TLS session ticket lifetime hint: 7200 (seconds)
+    TLS session ticket:
+    0000 - 51 24 8f d0 12 88 18 f6-dc c8 11 35 58 16 35 68   Q$.........5X.5h
+    0010 - d8 bf 29 f4 82 f3 d2 45-5b a2 59 ce ab 66 5b ec   ..)....E[.Y..f[.
+    0020 - da 5f 3a 9e f4 f0 0f d3-7d fd 10 47 91 0a 66 3e   ._:.....}..G..f>
+    0030 - 33 e8 2e 60 2e 34 40 52-06 08 9b 4e 57 bf 34 5c   3..`.4@R...NW.4\
+    0040 - fd 34 02 29 e0 11 a4 7a-1a 85 ea 61 b9 11 b4 a9   .4.)...z...a....
+    00DONE
+50 - ca 5f 16 ce cb 1e 39 e3-36 cb 28 cb 45 bf 1e 03   ._....9.6.(.E...
+    0060 - d4 83 1e 04 e7 00 9e 87-89 08 c9 48 fa 46 2c be   ...........H.F,.
+    0070 - c0 29 e6 28 b2 0d 10 a9-76 24 74 b1 13 59 f5 e5   .).(....v$t..Y..
+    0080 - 36 98 72 38 fa 4b 78 39-fd bb 4f af 04 19 67 2b   6.r8.Kx9..O...g+
+    0090 - 7e fe 25 0a 82 28 fb cd-34 55 33 27 34 b5 59 99   ~.%..(..4U3'4.Y.
+    00a0 - 43 ab 7f a8 28 66 e3 f8-75 5e d0 44 19 ef f4 03   C...(f..u^.D....
+    00b0 - 8f 0b 83 d8 52 25 79 89-00 00 b2 b2 b7 a6 46 7f   ....R%y.......F.
+    00c0 - ba ae 6f e1 fe bc d5 b1-e3 56 81 b2 36 a6 9a 7e   ..o......V..6..~
+    00d0 - 89 a9 75 50 0d 47 8e c7-90 0f 92 49 a1 0b 0c 46   ..uP.G.....I...F
+    00e0 - 9f 30 fe 35 04 ca 86 01-47 a3 59 f5 45 01 7d cb   .0.5....G.Y.E.}.
+    00f0 - 41 25 bf 3d 03 d3 89 5c-49 5f 58 95 ec 03 d4 e0   A%.=...\I_X.....
+    0100 - db 38 7d e3 00 8f 40 16-dc 01 0e 2f 9d b5 8c 01   .8}...@..../....
+    0110 - af 88 fd fd 1f a7 e5 2f-c8 49 db 59 d4 50 ed c3   ......./.I.Y.P..
+    0120 - 61 b2 79 a0 a8 30 9f fb-be 72 af 6b 11 97 2a b7   a.y..0...r.k..*.
+    0130 - 77 1a 74 d0 5c 07 55 6f-ab 9b 0f 32 43 a5 89 5e   w.t.\.Uo...2C..^
+    0140 - 61 74 e0 cc f4 98 4c 2c-fd 80 9c 52 d9 bf e7 a7   at....L,...R....
+    0150 - 18 8e d1 b4 42 55 9f b2-49 18 1e f4 fa 97 1d ec   ....BU..I.......
+    0160 - b2 94 ea 8e 44 ca cc 96-f7 50 25 00 6d fa 37 b4   ....D....P%.m.7.
+    0170 - eb 7a 2d 54 0d 66 06 5b-a4 fb d9 d0 58 de fa 7d   .z-T.f.[....X..}
+    0180 - b2 d6 86 d1 a9 ff 5b 76-6a 72 19 99 8e 23 9e 0a   ......[vjr...#..
+    0190 - a0 66 3f 51 34 7c b1 a2-ac ff b9 47 90 b7 4e 89   .f?Q4|.....G..N.
+    01a0 - d9 94 02 ed 45 90 ff aa-02 ed eb b5 c6 63 68 81   ....E........ch.
+    01b0 - 3f de 34 7e 07 7c 4e 91-d5 94 57 43 e2 ab e8 89   ?.4~.|N...WC....
+    01c0 - a6 9b ac 33 04 97 ce 69-25 4f ed 0a ca 9c 02 b6   ...3...i%O......
+    01d0 - 6a ec c1 8b 78 db eb 76-16 2f ce 86 f3 de 09 68   j...x..v./.....h
+    01e0 - 67 7a 06 4a 1b 17 93 2d-78 12 94 68 ab e6 25 61   gz.J...-x..h..%a
+    01f0 - b2 36 11 63 eb 2e dc e5-ed 40 b4 d8 6d 22 8e 48   .6.c.....@..m".H
+    0200 - bd 5c 9b 85 71 3e 1d 67-db 70 96 9d b9 47 19 03   .\..q>.g.p...G..
+    0210 - c9 ec ae 8e 57 21 6c 00-5c 3c 93 9e 9a f3 88 58   ....W!l.\<.....X
+    0220 - 7a 2b b4 45 96 76 b0 bf-74 03 4e 29 b6 dd fe a7   z+.E.v..t.N)....
+    0230 - f7 a4 fe 89 80 0a b9 af-bb 84 72 32 87 d8 a0 16   ..........r2....
+    0240 - 46 79 62 bf 28 76 01 f8-a0 07 ad 96 be 41 63 72   Fyb.(v.......Acr
+    0250 - 7c 9e 5d 91 b3 92 5c 65-6b 25 29 16 0a 22 e5 cf   |.]...\ek%).."..
+    0260 - d4 bb 30 53 30 06 14 f4-be f1 69 56 ee 97 e7 49   ..0S0.....iV...I
+    0270 - 4b ee c6 42 4a 8f aa db-72 2c c5 2d ea db e7 19   K..BJ...r,.-....
+    0280 - d3 87 93 4a b2 71 67 2d-d3 26 8f 84 8f 94 60 4a   ...J.qg-.&....`J
+    0290 - bb e2 f4 45 b4 fd 9c 59-3c 55 b5 b2 36 1d 67 96   ...E...Y<U..6.g.
+
+    Start Time: 1794322662
+    Timeout   : 7200 (sec)
+    Verify return code: 0 (ok)
+    Extended master secret: no
+    Max Early Data: 0
+---
+read R BLOCK
+Sent TLS Record
+Header:
+  Version = TLS 1.2 (0x303)
+  Content Type = ApplicationData (23)
+  Length = 19
+  Inner Content Type = Alert (21)
+    Level=warning(1), description=close notify(0)
+

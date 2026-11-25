@@ -1,0 +1,58 @@
+== [НЕГАТИВНЫЙ] без клиентского сертификата
+<<< TLS 1.3, Handshake [length 00b5], CertificateRequest
+<<< TLS 1.3, Alert [length 0002], fatal certificate_required
+80FF99FF01000000:error:0A00045C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required:ssl/record/rec_layer_s3.c:918:SSL alert number 116
+80FF99FF01000000:error:0A000197:SSL routines:SSL_shutdown:shutdown while in init:ssl/ssl_lib.c:2804:
+== С клиентским сертификатом ECDSA P-384 (-brief)
+Connecting to 127.0.0.1
+CONNECTION ESTABLISHED
+Protocol version: TLSv1.3
+Ciphersuite: TLS_AES_256_GCM_SHA384
+Requested Signature Algorithms: id-ml-dsa-65:id-ml-dsa-87:id-ml-dsa-44:ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:ed25519:ed448:ecdsa_brainpoolP256r1_sha256:ecdsa_brainpoolP384r1_sha384:ecdsa_brainpoolP512r1_sha512:rsa_pss_pss_sha256:rsa_pss_pss_sha384:rsa_pss_pss_sha512:RSA-PSS+SHA256:RSA-PSS+SHA384:RSA-PSS+SHA512:RSA+SHA256:RSA+SHA384:RSA+SHA512
+Peer certificate: CN=localhost
+Hash used: SHA384
+Signature type: ecdsa_secp384r1_sha384
+Verification: OK
+Peer Temp Key: ECDH, secp384r1, 384 bits
+== С сертификатом: тело ответа сервера
+Connecting to 127.0.0.1
+depth=2 C=BY, O=Lab PKI, CN=Lab Root CA
+verify return:1
+depth=1 C=BY, O=Lab PKI, CN=Lab Intermediate CA
+-- no_cert: сообщения (клиент)
+2 Certificate
+1 CertificateRequest
+1 CertificateVerify
+1 ClientHello
+1 EncryptedExtensions
+2 Finished
+1 ServerHello
+-- with_cert: сообщения (клиент)
+2 Certificate
+1 CertificateRequest
+2 CertificateVerify
+1 ClientHello
+1 EncryptedExtensions
+2 Finished
+2 NewSessionTicket
+1 ServerHello
+== CertificateRequest / клиентский Certificate в -trace
+8:    ClientHello, Length=285
+62:    ServerHello, Length=183
+90:    EncryptedExtensions, Length=2
+99:    CertificateRequest, Length=177
+140:    Certificate, Length=912
+263:    CertificateVerify, Length=106
+273:    Finished, Length=48
+289:    Certificate, Length=464
+355:    CertificateVerify, Length=106
+365:    Finished, Length=48
+head: illegal line count -- 0
+== keylog
+       6
+#
+CLIENT_HANDSHAKE_TRAFFIC_SECRET
+CLIENT_TRAFFIC_SECRET_0
+EXPORTER_SECRET
+SERVER_HANDSHAKE_TRAFFIC_SECRET
+SERVER_TRAFFIC_SECRET_0
