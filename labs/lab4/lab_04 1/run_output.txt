@@ -1,0 +1,136 @@
+openssl: OpenSSL 4.1.0 23 Oct 2026 (Library: OpenSSL 4.1.0 23 Oct 2026)
+nginx: nginx version: nginx/1.31.8
+curl: curl 8.23.0 (aarch64-apple-darwin27.0.0) libcurl/8.23.0 OpenSSL/4.1.0 zlib/1.2.12 brotli/1.2.0 zstd/1.5.7 AppleIDN libpsl/0.23.3 libssh2/1.11.1 nghttp2/1.71.0 ngtcp2/1.26.0 nghttp3/1.19.0 mit-krb5/1.7-prerelease OpenLDAP/2.4.28/Apple
+
+==== 1. Корневой CA (ECDSA P-256) ====
+
+==== 2. Промежуточный CA с nameConstraints (только .lab.local), pathlen:0 ====
+Certificate request self-signature ok
+subject=C=BY, O=Lab PKI, CN=Lab Intermediate CA
+  X509v3 Basic Constraints: critical
+      CA:TRUE, pathlen:0
+  X509v3 Key Usage: critical
+      Certificate Sign, CRL Sign
+  X509v3 Name Constraints: critical
+      Permitted:
+        DNS:.lab.local
+
+==== 3. База промежуточного CA и листовые сертификаты (openssl ca) ====
+  app: Write out database with 1 new entries
+  localhost: Write out database with 1 new entries
+--- root/root.crt
+  subject=C=BY, O=Lab PKI, CN=Lab Root CA
+  issuer=C=BY, O=Lab PKI, CN=Lab Root CA
+  X509v3 Basic Constraints: critical
+      CA:TRUE, pathlen:1
+  X509v3 Key Usage: critical
+      Certificate Sign, CRL Sign
+--- inter/inter.crt
+  subject=C=BY, O=Lab PKI, CN=Lab Intermediate CA
+  issuer=C=BY, O=Lab PKI, CN=Lab Root CA
+  X509v3 Basic Constraints: critical
+      CA:TRUE, pathlen:0
+  X509v3 Key Usage: critical
+      Certificate Sign, CRL Sign
+  X509v3 Name Constraints: critical
+      Permitted:
+        DNS:.lab.local
+--- server/app.crt
+  subject=CN=app.lab.local
+  issuer=C=BY, O=Lab PKI, CN=Lab Intermediate CA
+  X509v3 Basic Constraints: critical
+      CA:FALSE
+  X509v3 Key Usage: critical
+      Digital Signature
+  X509v3 Extended Key Usage: 
+      TLS Web Server Authentication
+  X509v3 Subject Alternative Name: 
+      DNS:app.lab.local
+--- server/localhost.crt
+  subject=CN=localhost
+  issuer=C=BY, O=Lab PKI, CN=Lab Intermediate CA
+  X509v3 Basic Constraints: critical
+      CA:FALSE
+  X509v3 Key Usage: critical
+      Digital Signature
+  X509v3 Extended Key Usage: 
+      TLS Web Server Authentication
+  X509v3 Subject Alternative Name: 
+      DNS:localhost, IP Address:127.0.0.1
+
+==== 4. Проверка цепочки (задача варианта) ====
+  server/app.crt: OK
+  [PASS] лист app.lab.local: OK
+
+--- [НЕГАТИВНЫЙ ТЕСТ] лист для localhost вне поддерева .lab.local
+  CN=localhost
+  error 47 at 0 depth lookup: permitted subtree violation
+  error server/localhost.crt: verification failed
+  [PASS] localhost: permitted subtree violation
+
+--- [НЕГАТИВНЫЙ ТЕСТ] без промежуточного сертификата
+  CN=app.lab.local
+  error 20 at 0 depth lookup: unable to get local issuer certificate
+  error server/app.crt: verification failed
+  [PASS] неполная цепочка отвергается
+
+==== 5. nginx: только TLS 1.3, TLS_AES_128_GCM_SHA256, X25519 ====
+  listen 127.0.0.1:8443 ssl;
+  ssl_certificate     /Users/gleb/Desktop/KMZI-2026-autumn/lab4_v1/out/server/fullchain.pem;
+  ssl_certificate_key /Users/gleb/Desktop/KMZI-2026-autumn/lab4_v1/out/server/app.key;
+  ssl_protocols TLSv1.3;
+  ssl_conf_command Ciphersuites TLS_AES_128_GCM_SHA256;
+  ssl_ecdh_curve X25519;
+  ssl_session_tickets on;
+  nginx -t: nginx: the configuration file /Users/gleb/Desktop/KMZI-2026-autumn/lab4_v1/out/nginx/nginx.conf syntax is ok
+  nginx -t: nginx: configuration file /Users/gleb/Desktop/KMZI-2026-autumn/lab4_v1/out/nginx/nginx.conf test is successful
+  [PASS] nginx слушает порт 8443
+
+==== 6. Клиент ====
+  HTTP 200, тело: tls13 ok
+  * TLSv1.3 (OUT), TLS handshake, Client hello (1):
+  * TLSv1.3 (IN), TLS handshake, Server hello (2):
+  * TLSv1.3 (IN), TLS change cipher, Change cipher spec (1):
+  [PASS] curl --cacert root.crt: HTTP 200
+  [PASS] TLSv1.3
+  [PASS] шифр TLS_AES_128_GCM_SHA256
+
+--- [НЕГАТИВНЫЙ ТЕСТ] curl без --cacert
+  curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate (20)
+  More details here: https://curl.se/docs/sslcerts.html
+  [PASS] exit 60
+
+--- [НЕГАТИВНЫЙ ТЕСТ] имя вне SAN (127.0.0.2)
+  curl: (60) SSL: no alternative certificate subject name matches target IPv4 address '127.0.0.2'
+  More details here: https://curl.se/docs/sslcerts.html
+  [PASS] exit 60: имя не в SAN
+
+--- [НЕГАТИВНЫЙ ТЕСТ] чужой корень
+  curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate (20)
+  More details here: https://curl.se/docs/sslcerts.html
+  [PASS] exit 60
+
+--- [НЕГАТИВНЫЙ ТЕСТ] TLS 1.2
+  80FF99FF01000000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:ssl/record/rec_layer_s3.c:910:SSL alert number 70
+  Protocol: TLSv1.2
+      Protocol  : TLSv1.2
+  [PASS] alert protocol version (70)
+
+==== 7. Рукопожатие (s_client -trace) и журнал ключей ====
+  ClientHello, Length=248
+  ServerHello, Length=118
+  EncryptedExtensions, Length=6
+  Certificate, Length=999
+  CertificateVerify, Length=75
+  Finished, Length=32
+  Finished, Length=32
+  NewSessionTicket, Length=245
+  NewSessionTicket, Length=245
+  extension_type=server_name(0), length=0
+  extension_type=server_name(0), length=18
+  extension_type=supported_groups(10), length=4
+  [PASS] проверка цепочки в s_client: OK
+  keys.log: 6 строк; метки: # CLIENT_HANDSHAKE_TRAFFIC_SECRET CLIENT_TRAFFIC_SECRET_0 EXPORTER_SECRET SERVER_HANDSHAKE_TRAFFIC_SECRET SERVER_TRAFFIC_SECRET_0 
+
+==== Итог ====
+  Пройдено: 12, не пройдено: 0
