@@ -1,0 +1,1 @@
+./lab4-variant12.sh all 2>&1 | tee ~/lab4/structure/full-run.log
