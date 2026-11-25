@@ -1,0 +1,185 @@
+==> [0] Подготовка каталогов
+==> [1] Корневой CA (ECDSA P-256)
+X509v3 Basic Constraints: critical
+    CA:TRUE, pathlen:1
+X509v3 Key Usage: critical
+    Certificate Sign, CRL Sign
+==> [2] Промежуточный CA (ECDSA P-256, nameConstraints=.lab.local)
+Certificate request self-signature ok
+subject=C = BY, O = Lab PKI, CN = Lab Intermediate CA
+X509v3 Basic Constraints: critical
+    CA:TRUE, pathlen:0
+X509v3 Key Usage: critical
+    Certificate Sign, CRL Sign
+X509v3 Name Constraints: critical
+    Permitted:
+      DNS:.lab.local
+==> [3] База промежуточного CA (index.txt, serial, crlnumber)
+==> [4] Серверный сертификат (SAN=app.lab.local)
+Using configuration from inter/ca.cnf
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+countryName           :PRINTABLE:'BY'
+organizationName      :ASN.1 12:'Lab PKI'
+commonName            :ASN.1 12:'localhost'
+Certificate is to be certified until Nov 24 14:29:39 2027 GMT (365 days)
+
+Write out database with 1 new entries
+Database updated
+==> [5] Проверка цепочки
+--- ожидаемо OK ---
+server/server.crt: OK
+--- ожидаемо FAIL (без промежуточного) ---
+CN = localhost
+error 20 at 0 depth lookup: unable to get local issuer certificate
+error server/server.crt: verification failed
+--- расширения листа ---
+X509v3 Basic Constraints: critical
+    CA:FALSE
+X509v3 Extended Key Usage:
+    TLS Web Server Authentication
+X509v3 Subject Alternative Name:
+    DNS:app.lab.local
+==> [6] nginx: TLS 1.3, TLS_AES_128_GCM_SHA256, P-256
+[sudo] password for moonfox:
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+==> [7] curl (ожидаемо 200 + tls13 ok)
+tls13 ok
+--- Негативные тесты (ожидаемо ошибки) ---
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+curl: (60) SSL: no alternative certificate subject name matches target host name '127.0.0.2'
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+407794EDBF720000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../ssl/record/rec_layer_s3.c:1599:SSL alert number 70
+    Protocol  : TLSv1.2
+==> [8] Захват рукопожатия + журнал ключей
+Метки в keys.log:
+CLIENT_HANDSHAKE_TRAFFIC_SECRET
+CLIENT_TRAFFIC_SECRET_0
+EXPORTER_SECRET
+SERVER_HANDSHAKE_TRAFFIC_SECRET
+SERVER_TRAFFIC_SECRET_0
+==> [9] tshark
+--- Без ключей (тип 1 и 2) ---
+4       22      1
+6       22,20   2
+8       20,22   1
+9       22      2
+--- С ключами (8,11,15,20) ---
+4       1
+6       2
+8       1
+9       2,8,11,15,20
+10      20
+12      4
+13      4
+--- Cipher / group ---
+0x1301
+0x1301  23
+--- SNI ---
+app.lab.local
+app.lab.local
+--- SAN из Certificate ---
+                                    GeneralName: dNSName (2)
+                                        dNSName: app.lab.local
+                                            base: dNSName (2)
+                                                dNSName: .lab.local
+--- CertificateVerify sig alg ---
+0x0403
+==> [10] Name Constraints: good (app.lab.local) vs bad (localhost)
+Using configuration from inter/ca.cnf
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+commonName            :ASN.1 12:'app.lab.local'
+Certificate is to be certified until Nov 24 14:29:48 2027 GMT (365 days)
+
+Write out database with 1 new entries
+Database updated
+Using configuration from inter/ca.cnf
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+commonName            :ASN.1 12:'localhost'
+Certificate is to be certified until Nov 24 14:29:48 2027 GMT (365 days)
+
+Write out database with 1 new entries
+Database updated
+--- good (ожидаемо OK) ---
+test/good.crt: OK
+--- bad (ожидаемо permitted subtree violation) ---
+CN = localhost
+error 47 at 0 depth lookup: permitted subtree violation
+error test/bad.crt: verification failed
+--- реальное рукопожатие s_server с bad.crt ---
+depth=0 CN = localhost
+verify error:num=47:permitted subtree violation
+CONNECTION ESTABLISHED
+Protocol version: TLSv1.3
+Ciphersuite: TLS_AES_128_GCM_SHA256
+Peer certificate: CN = localhost
+Hash used: SHA256
+Signature type: ECDSA
+Verification error: permitted subtree violation
+Server Temp Key: ECDH, prime256v1, 256 bits
+DONE
+
+==> [11] Структура сертификатов
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 4096 (0x1000)
+        Signature Algorithm: ecdsa-with-SHA256
+        Issuer: C = BY, O = Lab PKI, CN = Lab Intermediate CA
+        Validity
+            Not Before: Nov 24 14:29:39 2026 GMT
+            Not After : Nov 24 14:29:39 2027 GMT
+        Subject: CN = localhost
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub:
+                    04:0e:73:82:27:a7:8e:09:83:b9:32:66:c9:1b:48:
+                    7d:6b:d6:39:fc:76:b4:19:76:d4:81:9b:4f:6b:24:
+                    c8:31:f1:f6:89:30:7e:c2:b1:08:c7:81:95:e9:67:
+                    86:60:d5:da:80:d7:61:89:0d:6d:72:eb:a0:fe:4b:
+                    ba:6a:e5:55:6a
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage:
+                TLS Web Server Authentication
+            X509v3 Subject Key Identifier:
+                19:15:1D:1F:F2:D7:93:9B:62:C3:0D:52:B6:3E:D9:28:DE:7C:B7:6C
+            X509v3 Authority Key Identifier:
+                55:BF:DF:B9:85:C0:9A:C6:0E:C0:0B:5F:BA:D5:4B:35:DB:79:38:1A
+            X509v3 Subject Alternative Name:
+                DNS:app.lab.local
+    Signature Algorithm: ecdsa-with-SHA256
+    Signature Value:
+        30:46:02:21:00:e4:40:b0:cf:06:d5:4a:19:16:cf:eb:5f:b2:
+        7c:6f:ea:cb:e6:8d:4e:29:ff:3e:c6:13:09:21:3a:8b:6b:2f:
+        c7:02:21:00:c9:04:a0:92:fe:5c:b9:ec:ea:53:7e:2f:8a:37:
+        42:3f:f5:7d:b4:07:71:b1:5b:9f:81:5e:58:25:e7:a9:bf:b5
+
+==> Готово.
