@@ -1,0 +1,3 @@
+/Users/gleb/Desktop/KMZI-2026-autumn/task_01/src/build/CMakeFiles/main.dir
+/Users/gleb/Desktop/KMZI-2026-autumn/task_01/src/build/CMakeFiles/edit_cache.dir
+/Users/gleb/Desktop/KMZI-2026-autumn/task_01/src/build/CMakeFiles/rebuild_cache.dir
